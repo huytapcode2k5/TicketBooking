@@ -39,6 +39,7 @@ r.put('/coupons/:id', s.updateCoupon);
 r.get('/stats/summary', s.statsSummary);
 r.get('/stats/revenue-by-day', s.revenueByDay);
 r.get('/stats/revenue-by-movie', s.revenueByMovie);
+r.get('/stats/fill-rate', s.fillRateByShowtime);
 r.get('/orders/recent', s.recentOrders);
 
 // C: đối soát + hoàn tiền
