@@ -15,6 +15,8 @@ tickethub/
 
 Cần: Node.js 20 trở lên, SQL Server (đã tạo database `TicketBookingDB`, bật SQL Server Authentication và TCP/IP).
 
+Sau `TicketBookingDB.sql`, chạy thêm bản vá đặt vé `database/migration_b_booking.sql` (chạy lại nhiều lần không sao): chặn đổi ghế khi đang có đơn chờ thanh toán, không để 2 đơn chờ cùng giữ một ghế, kiểm tra lại suất chiếu khi tạo đơn, tính cả đơn đang chờ vào số lượt của mã giảm giá.
+
 **Server**
 ```bash
 cd server
@@ -31,8 +33,6 @@ npm run dev               # http://localhost:5173
 ```
 
 Tài khoản mẫu: `admin@ticket.vn / Admin@123`, `staff@ticket.vn / Staff@123`, `user@ticket.vn / User@123`.
-
-**Bản vá đặt vé (B):** sau `TicketBookingDB.sql`, chạy thêm `database/migration_b_booking.sql` (chạy lại nhiều lần không sao). Bản vá chặn đổi ghế khi đang có đơn chờ thanh toán, không để 2 đơn chờ cùng giữ một ghế, kiểm tra lại suất chiếu khi tạo đơn và tính cả đơn đang chờ vào số lượt của mã giảm giá.
 
 ## 2. Thanh toán PayOS
 
