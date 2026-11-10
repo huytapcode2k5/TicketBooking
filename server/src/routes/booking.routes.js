@@ -9,6 +9,7 @@ const r = Router();
 r.get('/showtimes/:id/seats', (req, res, next) => (req.headers.authorization ? requireAuth(req, res, next) : next()), seats.getSeats);
 r.post('/showtimes/:id/hold', requireAuth, validate(seats.holdSchema), seats.holdSeats);
 r.delete('/showtimes/:id/hold', requireAuth, seats.releaseHold);
+r.get('/showtimes/:id/pending-order', requireAuth, seats.pendingOrder);
 
 r.get('/products', shop.listProducts);
 r.post('/coupons/validate', requireAuth, validate(shop.validateCouponSchema), shop.validateCoupon);

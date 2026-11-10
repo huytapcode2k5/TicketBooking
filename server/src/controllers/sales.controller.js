@@ -25,10 +25,11 @@ export const validateCouponSchema = z.object({ code: z.string().min(1), subTotal
 export const validateCoupon = asyncHandler(async (req, res) => {
   const { code, subTotal } = req.body;
   const [c] = await query(
-    `SELECT Code, Description, DiscountType, DiscountValue, MaxDiscount FROM Coupons
-     WHERE Code = @Code AND IsActive = 1 AND SYSUTCDATETIME() BETWEEN StartAt AND EndAt
-       AND (MaxUses IS NULL OR UsedCount < MaxUses) AND MinOrderAmount <= @SubTotal`,
-    { Code: code.trim(), SubTotal: subTotal },
+    `SELECT Code, Description, DiscountType, DiscountValue, MaxDiscount FROM Coupons c
+     WHERE Code = @Code AND IsActive = 1 AND SYSUTCDATETIME() BETWEEN StartAt AND EndAt AND MinOrderAmount <= @SubTotal
+       AND (MaxUses IS NULL OR UsedCount + (SELECT COUNT(*) FROM Orders o WHERE o.CouponId = c.CouponId AND o.Status = 'PENDING'
+                                            AND o.ExpiresAt > SYSUTCDATETIME() AND o.UserId <> @UserId) < MaxUses)`,
+    { Code: code.trim(), SubTotal: subTotal, UserId: req.user.userId },
   );
   if (!c) return ok(res, { valid: false, discountAmount: 0 }, 'Mã giảm giá không hợp lệ hoặc chưa đủ điều kiện.');
   let discount = c.discountType === 'PERCENT' ? Math.floor((subTotal * c.discountValue) / 100) : c.discountValue;
