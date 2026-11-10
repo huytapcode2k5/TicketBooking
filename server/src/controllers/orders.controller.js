@@ -18,7 +18,9 @@ export const createOrder = asyncHandler(async (req, res) => {
     UserId: req.user.userId, ShowtimeId: showtimeId, SeatIds: seatIds.join(','),
     CouponCode: couponCode?.trim() || null, CombosJson: combos?.length ? JSON.stringify(combos) : null,
   });
-  const o = rows[0];
+  const { replacedOrderCode, ...o } = rows[0];
+  // Đơn chờ cũ của cùng suất vừa bị thay: hủy link PayOS để khách không trả nhầm 2 lần
+  if (replacedOrderCode) cancelPaymentLink(replacedOrderCode, 'Thay bang don moi');
   ok(res, { ...o, orderCode: Number(o.orderCode) }, 'Đã tạo đơn hàng', 201);
 });
 

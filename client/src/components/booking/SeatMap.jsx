@@ -2,7 +2,7 @@ import { SEAT_TYPE_LABEL } from '../../utils/format.js';
 import { Sparkles, Heart } from 'lucide-react';
 
 const base =
-  'relative h-8 w-8 sm:h-9 sm:w-9 rounded-lg text-[10px] sm:text-xs font-bold transition-all duration-200 flex items-center justify-center select-none';
+  'relative h-8 w-8 sm:h-9 sm:w-9 rounded-lg text-[10px] sm:text-[11px] font-bold tracking-tighter transition-all duration-200 flex items-center justify-center select-none';
 
 function seatClass(seat, selected) {
   if (selected) {
@@ -69,10 +69,11 @@ export default function SeatMap({ seats, selectedIds, onToggle, disabled }) {
                         key={s.seatId}
                         disabled={disabled || blocked}
                         onClick={() => onToggle(s)}
-                        title={`${row}${s.colNumber} · ${SEAT_TYPE_LABEL[s.seatType] || 'Ghế'}`}
+                        title={`Ghế ${row}${s.colNumber} · ${SEAT_TYPE_LABEL[s.seatType] || 'Ghế'}`}
+                        aria-label={`Ghế ${row}${s.colNumber}`}
                         className={seatClass(s, selected)}
                       >
-                        {s.colNumber}
+                        {row}{s.colNumber}
                         {s.seatType === 'VIP' && !selected && (
                           <Sparkles className="absolute -top-1 -right-1 h-2.5 w-2.5 text-amber-400 pointer-events-none" />
                         )}
