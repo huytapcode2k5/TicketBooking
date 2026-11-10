@@ -32,6 +32,8 @@ npm run dev               # http://localhost:5173
 
 Tài khoản mẫu: `admin@ticket.vn / Admin@123`, `staff@ticket.vn / Staff@123`, `user@ticket.vn / User@123`.
 
+**Dữ liệu demo (B9):** sau khi chạy `TicketBookingDB.sql`, chạy thêm `database/seed_demo.sql` (SSMS, hoặc `sqlcmd -S . -E -C -I -f 65001 -i database\seed_demo.sql`). File tạo 6 sự kiện ở mục 7 tài liệu cùng 1 sự kiện đã kết thúc, 31 đơn đã thanh toán và 12 khách `demo01..demo12@ticket.vn / User@123`. Ngày giờ tính theo ngày chạy nên lúc nào demo cũng đủ trạng thái; chạy lại sẽ tự bỏ qua.
+
 ## 2. Thanh toán PayOS
 
 1. Đăng ký PayOS, tạo kênh thanh toán, điền `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, `PAYOS_CHECKSUM_KEY` vào `server/.env`.
