@@ -31,7 +31,7 @@ Lỗi nghiệp vụ từ procedure (mã 50001–50052) trả HTTP 400, riêng gh
 | GET | /api/orders/me, /api/orders/:id | Đơn của tôi |
 | POST | /api/orders/:id/cancel | Hủy đơn chưa thanh toán |
 | GET/PATCH | /api/notifications, /api/notifications/:id/read | Thông báo |
-| CRUD | /api/admin/coupons, /api/admin/products | Mã giảm giá, combo (ADMIN) |
+| CRUD | /api/admin/coupons, /api/admin/products | Mã giảm giá, combo (ADMIN). Không xóa, chỉ tắt bằng `PUT { isActive: false }`. PUT mã giảm giá chỉ sửa được `description, maxDiscount, minOrderAmount, maxUses, startAt, endAt, isActive` (không đổi mã, loại, mức giảm); tạo trùng mã trả 409 |
 | GET | /api/admin/stats/summary, /revenue-by-day, /revenue-by-movie, /api/admin/orders/recent | Dashboard (ADMIN) |
 
 ## Người C – thanh toán, vé, soát vé

@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { query, updateById, toId } from '../utils/db.js';
 import { ok, asyncHandler } from '../utils/response.js';
+import { HttpError } from '../utils/httpError.js';
 
 // ---------- Combo ----------
 export const listProducts = asyncHandler(async (req, res) =>
   ok(res, await query('SELECT ProductId, Name, Description, Price, ImageUrl FROM Products WHERE IsActive = 1 ORDER BY Price')),
 );
 export const productSchema = z.object({ name: z.string().min(1), description: z.string().optional(), price: z.number().int().min(0), imageUrl: z.string().optional(), isActive: z.boolean().optional() });
+export const productUpdateSchema = productSchema.partial().extend({ description: z.string().nullable().optional(), imageUrl: z.string().nullable().optional() });
 export const adminListProducts = asyncHandler(async (req, res) => ok(res, await query('SELECT * FROM Products ORDER BY ProductId DESC')));
 export const createProduct = asyncHandler(async (req, res) => {
   const b = req.body;
@@ -36,14 +38,30 @@ export const validateCoupon = asyncHandler(async (req, res) => {
   ok(res, { valid: true, code: c.code, description: c.description, discountAmount: Math.min(discount, subTotal) }, 'Áp dụng mã thành công');
 });
 
+const isoDate = z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'ngày giờ không hợp lệ');
+const endAfterStart = (b) => !b.startAt || !b.endAt || new Date(b.endAt) > new Date(b.startAt);
+const endAfterStartMsg = { message: 'phải sau thời điểm bắt đầu', path: ['endAt'] };
+
 export const couponSchema = z.object({
-  code: z.string().min(1), description: z.string().optional(), discountType: z.enum(['PERCENT', 'FIXED']), discountValue: z.number().int().positive(),
-  maxDiscount: z.number().int().optional(), minOrderAmount: z.number().int().min(0).default(0), maxUses: z.number().int().optional(),
-  startAt: z.string(), endAt: z.string(),
-});
+  code: z.string().trim().min(1).max(50).regex(/^[A-Za-z0-9_-]+$/, 'chỉ gồm chữ, số, - và _'), description: z.string().optional(),
+  discountType: z.enum(['PERCENT', 'FIXED']), discountValue: z.number().int().positive(),
+  maxDiscount: z.number().int().positive().optional(), minOrderAmount: z.number().int().min(0).default(0), maxUses: z.number().int().positive().optional(),
+  startAt: isoDate, endAt: isoDate,
+})
+  .refine((b) => b.discountType !== 'PERCENT' || b.discountValue <= 100, { message: 'phần trăm giảm tối đa 100', path: ['discountValue'] })
+  .refine(endAfterStart, endAfterStartMsg);
+// Không cho đổi mã, loại và giá trị giảm sau khi tạo để không lệch với các đơn đã dùng mã
+export const couponUpdateSchema = z.object({
+  description: z.string().nullable().optional(), maxDiscount: z.number().int().positive().nullable().optional(),
+  minOrderAmount: z.number().int().min(0).optional(), maxUses: z.number().int().positive().nullable().optional(),
+  startAt: isoDate.optional(), endAt: isoDate.optional(), isActive: z.boolean().optional(),
+}).refine(endAfterStart, endAfterStartMsg);
+
 export const adminListCoupons = asyncHandler(async (req, res) => ok(res, await query('SELECT * FROM Coupons ORDER BY CouponId DESC')));
 export const createCoupon = asyncHandler(async (req, res) => {
   const b = req.body;
+  const [dup] = await query('SELECT 1 AS x FROM Coupons WHERE Code = @Code', { Code: b.code.toUpperCase() });
+  if (dup) throw new HttpError(409, `Mã ${b.code.toUpperCase()} đã tồn tại.`);
   const [row] = await query(
     `INSERT INTO Coupons (Code, Description, DiscountType, DiscountValue, MaxDiscount, MinOrderAmount, MaxUses, StartAt, EndAt)
      OUTPUT INSERTED.* VALUES (@Code, @Description, @DiscountType, @DiscountValue, @MaxDiscount, @MinOrderAmount, @MaxUses, @StartAt, @EndAt)`,
@@ -52,9 +70,22 @@ export const createCoupon = asyncHandler(async (req, res) => {
   );
   ok(res, row, 'Đã tạo mã giảm giá', 201);
 });
-export const updateCoupon = asyncHandler(async (req, res) =>
-  ok(res, await updateById('Coupons', 'CouponId', toId(req.params.id), req.body, { description: 'Description', maxDiscount: 'MaxDiscount', minOrderAmount: 'MinOrderAmount', maxUses: 'MaxUses', isActive: 'IsActive' })),
-);
+export const updateCoupon = asyncHandler(async (req, res) => {
+  const id = toId(req.params.id);
+  const b = { ...req.body };
+  if (b.startAt) b.startAt = new Date(b.startAt);
+  if (b.endAt) b.endAt = new Date(b.endAt);
+  // Chỉ đổi một đầu khoảng thời gian thì so với đầu còn lại đang lưu trong DB
+  if (b.startAt || b.endAt) {
+    const [cur] = await query('SELECT StartAt, EndAt FROM Coupons WHERE CouponId = @Id', { Id: id });
+    if (!cur) throw new HttpError(404, 'Không tìm thấy mã giảm giá.');
+    if ((b.endAt ?? cur.endAt) <= (b.startAt ?? cur.startAt)) throw new HttpError(400, 'endAt: phải sau thời điểm bắt đầu');
+  }
+  ok(res, await updateById('Coupons', 'CouponId', id, b, {
+    description: 'Description', maxDiscount: 'MaxDiscount', minOrderAmount: 'MinOrderAmount', maxUses: 'MaxUses',
+    startAt: 'StartAt', endAt: 'EndAt', isActive: 'IsActive',
+  }), 'Đã cập nhật mã giảm giá');
+});
 
 // ---------- Thống kê (dashboard) ----------
 // "Hôm nay" tính theo giờ Việt Nam (UTC+7)
