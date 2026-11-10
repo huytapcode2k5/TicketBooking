@@ -85,6 +85,18 @@ export const revenueByDay = asyncHandler(async (req, res) =>
 export const revenueByMovie = asyncHandler(async (req, res) =>
   ok(res, await query('SELECT TOP 10 MovieId, Title, TicketsSold, TicketRevenue FROM vw_RevenueByMovie ORDER BY TicketsSold DESC')),
 );
+/** Tỷ lệ lấp đầy từng suất sắp diễn ra, suất đầy nhất trước (cùng mức thì suất gần hơn trước), mặc định 10 suất. */
+export const fillRateByShowtime = asyncHandler(async (req, res) => {
+  const rows = await query(
+    `SELECT TOP (@Limit) ShowtimeId, MovieTitle, CinemaName, StartTime, SoldSeats, TotalSeats,
+            CASE WHEN TotalSeats = 0 THEN 0 ELSE ROUND(SoldSeats * 100.0 / TotalSeats, 1) END AS FillRate
+     FROM vw_ShowtimeSummary
+     WHERE Status = 'SCHEDULED' AND StartTime > SYSUTCDATETIME()
+     ORDER BY FillRate DESC, StartTime`,
+    { Limit: Math.min(Number(req.query.limit) || 10, 30) },
+  );
+  ok(res, rows);
+});
 export const recentOrders = asyncHandler(async (req, res) => {
   const rows = await query(
     `SELECT TOP 10 o.OrderId, o.OrderCode, o.TotalAmount, o.Status, o.CreatedAt, u.FullName

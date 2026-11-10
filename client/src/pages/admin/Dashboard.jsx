@@ -3,6 +3,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -12,7 +13,7 @@ import {
 } from 'recharts';
 import { api } from '../../api/axios.js';
 import Spinner from '../../components/common/Spinner.jsx';
-import { vnd, fmtDateTime } from '../../utils/format.js';
+import { vnd, fmtDateTime, fmtTime, dayKey } from '../../utils/format.js';
 import { 
   DollarSign, 
   Ticket, 
@@ -31,6 +32,21 @@ const STATUS = {
   REFUNDED: ['Đã hoàn tiền', 'bg-blue-500/15 text-blue-300 border border-blue-500/30'],
 };
 
+// Tên trong ngoặc kép là tên ngắn của sự kiện ("Hạ Vàng"), không có thì cắt bớt
+const shortTitle = (t = '') => {
+  const s = t.match(/"([^"]+)"/)?.[1] ?? t;
+  return s.length > 18 ? `${s.slice(0, 17).trimEnd()}…` : s;
+};
+
+// "DD/MM" theo giờ Việt Nam
+const shortDay = (d) => {
+  const k = dayKey(d);
+  return `${k.slice(8, 10)}/${k.slice(5, 7)}`;
+};
+
+// Màu theo mức lấp đầy: gần hết vé đỏ, khá vàng, còn nhiều xanh
+const fillColor = (rate) => (rate >= 90 ? '#FF4564' : rate >= 50 ? '#FBBF24' : '#60A5FA');
+
 export default function Dashboard() {
   const [d, setD] = useState(null);
   const [error, setError] = useState('');
@@ -41,13 +57,18 @@ export default function Dashboard() {
       api.get('/admin/stats/revenue-by-day?days=7'),
       api.get('/admin/stats/revenue-by-movie'),
       api.get('/admin/orders/recent'),
+      api.get('/admin/stats/fill-rate?limit=10'),
     ])
-      .then(([s, day, movie, orders]) =>
+      .then(([s, day, movie, orders, fill]) =>
         setD({
           s: s.data,
           day: day.data.map((x) => ({ ...x, label: String(x.date).slice(5, 10) })),
           movie: movie.data,
           orders: orders.data,
+          fill: fill.data.map((x) => ({
+            ...x,
+            label: `${shortTitle(x.movieTitle)} · ${shortDay(x.startTime)} ${fmtTime(x.startTime)}`,
+          })),
         })
       )
       .catch((e) => setError(e.message));
@@ -185,6 +206,45 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* Fill rate per upcoming showtime */}
+      <div className="card p-6 bg-surface/90 border-white/10 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+          <h2 className="font-display font-bold text-base text-white">Tỷ lệ lấp đầy các suất sắp tới (đầy nhất trước)</h2>
+          <div className="flex gap-3 text-[11px] text-slate-400">
+            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-[#FF4564]" /> ≥ 90%</span>
+            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-[#FBBF24]" /> 50–89%</span>
+            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-[#60A5FA]" /> &lt; 50%</span>
+          </div>
+        </div>
+        {d.fill.length === 0 ? (
+          <p className="py-8 text-center text-sm text-slate-400">Chưa có suất nào sắp diễn ra.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={Math.max(160, d.fill.length * 34 + 30)}>
+            <BarChart data={d.fill} layout="vertical" margin={{ left: 8, right: 24 }}>
+              <CartesianGrid stroke="#ffffff10" strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke="#64748b" fontSize={11} />
+              <YAxis type="category" dataKey="label" width={260} stroke="#64748b" fontSize={11} tickLine={false} />
+              <Tooltip
+                cursor={{ fill: '#ffffff08' }}
+                formatter={(v, _n, p) => [`${v}% (${p.payload.soldSeats}/${p.payload.totalSeats} ghế)`, 'Lấp đầy']}
+                labelFormatter={(_l, p) => p?.[0]?.payload?.movieTitle ?? ''}
+                contentStyle={{
+                  background: '#11172A',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                }}
+              />
+              <Bar dataKey="fillRate" radius={[0, 6, 6, 0]} barSize={18}>
+                {d.fill.map((x) => (
+                  <Cell key={x.showtimeId} fill={fillColor(x.fillRate)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* Recent Orders Table */}
