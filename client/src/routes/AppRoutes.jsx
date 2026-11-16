@@ -18,6 +18,7 @@ import CheckIn from '../pages/staff/CheckIn.jsx';
 import Dashboard from '../pages/admin/Dashboard.jsx';
 import PaymentReview from '../pages/admin/PaymentReview.jsx';
 import AdminTodo from '../pages/admin/AdminTodo.jsx';
+import AdminCoupons from '../pages/admin/AdminCoupons.jsx';
 
 const authed = (el) => <ProtectedRoute>{el}</ProtectedRoute>;
 
@@ -49,8 +50,7 @@ export default function AppRoutes() {
           api={['POST /api/admin/cinemas', 'GET/POST /api/admin/rooms', 'POST /api/admin/rooms/:id/generate-seats', 'PATCH /api/admin/seats/:id']} />} />
         <Route path="showtimes" element={<AdminTodo title="Suất chiếu" owner="A10"
           api={['GET /api/admin/showtimes', 'POST /api/admin/showtimes', 'DELETE /api/admin/showtimes/:id']} />} />
-        <Route path="coupons" element={<AdminTodo title="Mã giảm giá và combo" owner="B6"
-          api={['GET/POST/PUT /api/admin/coupons', 'GET/POST/PUT /api/admin/products']} />} />
+        <Route path="coupons" element={<AdminCoupons />} />
         <Route path="users" element={<AdminTodo title="Người dùng" owner="A11"
           api={['GET /api/admin/users?q=', 'PATCH /api/admin/users/:id  { role, isActive }']} />} />
         <Route path="payments" element={<PaymentReview />} />

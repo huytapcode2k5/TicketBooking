@@ -32,10 +32,10 @@ r.post('/upload', upload.single('image'), a.uploadImage);
 // B: bán hàng + thống kê
 r.get('/products', s.adminListProducts);
 r.post('/products', validate(s.productSchema), s.createProduct);
-r.put('/products/:id', s.updateProduct);
+r.put('/products/:id', validate(s.productUpdateSchema), s.updateProduct);
 r.get('/coupons', s.adminListCoupons);
 r.post('/coupons', validate(s.couponSchema), s.createCoupon);
-r.put('/coupons/:id', s.updateCoupon);
+r.put('/coupons/:id', validate(s.couponUpdateSchema), s.updateCoupon);
 r.get('/stats/summary', s.statsSummary);
 r.get('/stats/revenue-by-day', s.revenueByDay);
 r.get('/stats/revenue-by-movie', s.revenueByMovie);
