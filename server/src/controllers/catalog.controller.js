@@ -11,9 +11,13 @@ export const listMovies = asyncHandler(async (req, res) => {
   const { q, genreId, status, cinemaId } = req.query;
   const limit = Math.min(Number(req.query.limit) || 12, 50);
   const offset = ((Number(req.query.page) || 1) - 1) * limit;
-  const params = { Q: q || null, GenreId: genreId ? toId(genreId, 'genreId') : null, Status: status || null, CinemaId: cinemaId ? toId(cinemaId, 'cinemaId') : null, Offset: offset, Limit: limit };
+  const params = { Q: q ? String(q).trim() : null, GenreId: genreId ? toId(genreId, 'genreId') : null, Status: status || null, CinemaId: cinemaId ? toId(cinemaId, 'cinemaId') : null, Offset: offset, Limit: limit };
   const where = `m.Status <> 'HIDDEN'
-    AND (@Q IS NULL OR m.Title LIKE '%' + @Q + '%')
+    AND (@Q IS NULL OR (
+      m.Title COLLATE SQL_Latin1_General_CP1_CI_AI LIKE '%' + @Q + '%'
+      OR m.Director COLLATE SQL_Latin1_General_CP1_CI_AI LIKE '%' + @Q + '%'
+      OR m.Actors COLLATE SQL_Latin1_General_CP1_CI_AI LIKE '%' + @Q + '%'
+    ))
     AND (@Status IS NULL OR m.Status = @Status)
     AND (@GenreId IS NULL OR EXISTS (SELECT 1 FROM MovieGenres mg WHERE mg.MovieId = m.MovieId AND mg.GenreId = @GenreId))
     AND (@CinemaId IS NULL OR EXISTS (SELECT 1 FROM Showtimes st JOIN Rooms r ON r.RoomId = st.RoomId

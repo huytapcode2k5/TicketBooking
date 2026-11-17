@@ -27,9 +27,9 @@ const STATUS_TABS = [
 const LIMIT = 12;
 
 export default function Home() {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const q = params.get('q') || '';
-  const [status, setStatus] = useState('NOW_SHOWING');
+  const [status, setStatus] = useState(params.get('status') || (q ? '' : 'NOW_SHOWING'));
   const [genreId, setGenreId] = useState('');
   const [cinemaId, setCinemaId] = useState('');
   const [genres, setGenres] = useState([]);
@@ -49,7 +49,11 @@ export default function Home() {
 
   useEffect(() => {
     setPage(1);
-  }, [q, status, genreId, cinemaId]);
+    // Khi có từ khóa tìm kiếm q và không chỉ định tab, mặc định hiển thị tất cả trạng thái để tìm thấy phim
+    if (q && !params.get('status')) {
+      setStatus('');
+    }
+  }, [q, params]);
 
   useEffect(() => {
     setLoading(true);
@@ -206,11 +210,23 @@ export default function Home() {
 
         {/* Search status notification */}
         {q && (
-          <div className="flex items-center gap-2 text-sm text-slate-300 px-1">
-            <Search className="h-4 w-4 text-accent" />
-            <span>
-              Kết quả tìm kiếm cho: <b className="text-white font-bold">"{q}"</b> ({total} phim & sự kiện)
-            </span>
+          <div className="flex items-center justify-between gap-3 text-sm text-slate-300 px-4 py-2.5 rounded-xl bg-surface2/60 border border-white/5 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-accent shrink-0" />
+              <span>
+                Kết quả tìm kiếm cho: <b className="text-white font-bold">"{q}"</b> ({total} phim & sự kiện)
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                const next = new URLSearchParams(params);
+                next.delete('q');
+                setParams(next);
+              }}
+              className="text-xs text-accent hover:text-accent-hover underline cursor-pointer shrink-0"
+            >
+              Xóa tìm kiếm
+            </button>
           </div>
         )}
 

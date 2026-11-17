@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import NotificationBell from './NotificationBell.jsx';
 import { 
@@ -18,13 +18,22 @@ import {
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [q, setQ] = useState('');
+  const [searchParams] = useSearchParams();
+  const urlQ = searchParams.get('q') || '';
+  const [q, setQ] = useState(urlQ);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setQ(urlQ);
+  }, [urlQ]);
 
   const search = (e) => {
     e.preventDefault();
     if (q.trim()) {
       navigate(`/?q=${encodeURIComponent(q.trim())}`);
+      setMobileMenuOpen(false);
+    } else {
+      navigate('/');
       setMobileMenuOpen(false);
     }
   };
