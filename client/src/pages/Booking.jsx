@@ -17,7 +17,8 @@ import {
   AlertCircle, 
   Lock, 
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Receipt
 } from 'lucide-react';
 
 export default function Booking() {
@@ -32,6 +33,8 @@ export default function Booking() {
   const [expiresAt, setExpiresAt] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Đơn chờ thanh toán của mình cho suất này: ghế đang giữ thuộc về đơn đó, không cho đổi ghế
+  const [pending, setPending] = useState(null);
   const selectedRef = useRef([]);
   selectedRef.current = selected;
 
@@ -43,10 +46,32 @@ export default function Booking() {
     setExpiresAt(mine[0]?.holdExpiresAt ?? null);
   }, [id]);
 
+  const loadPending = useCallback(async () => {
+    if (!user) return setPending(null);
+    const r = await api.get(`/showtimes/${id}/pending-order`);
+    setPending(r.data);
+  }, [id, user]);
+
   useEffect(() => {
     api.get(`/showtimes/${id}`).then((r) => setShowtime(r.data)).catch((e) => setError(e.message));
     loadSeats().catch((e) => setError(e.message));
-  }, [id, loadSeats, user]);
+    loadPending().catch(() => {});
+  }, [id, loadSeats, loadPending, user]);
+
+  const cancelPending = async () => {
+    if (!pending || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api.post(`/orders/${pending.orderId}/cancel`, {});
+      setPending(null);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      await Promise.all([loadSeats(), loadPending()]).catch(() => {});
+      setBusy(false);
+    }
+  };
 
   // Realtime: người khác giữ / nhả / mua ghế thì sơ đồ đổi màu ngay
   useEffect(() => {
@@ -85,12 +110,14 @@ export default function Booking() {
     if (left === 0) {
       setError('Đã hết thời gian giữ chỗ. Vui lòng chọn lại ghế.');
       loadSeats().catch(() => {});
+      loadPending().catch(() => {});
     }
-  }, [left, loadSeats]);
+  }, [left, loadSeats, loadPending]);
 
   const toggle = async (seat) => {
     if (!user) return navigate('/login', { state: { from: location } });
     if (busy) return;
+    if (pending) return setError('Bạn đang có đơn chờ thanh toán cho suất này. Hãy thanh toán hoặc hủy đơn trước khi chọn lại ghế.');
     setError('');
     const next = selected.includes(seat.seatId)
       ? selected.filter((x) => x !== seat.seatId)
@@ -129,10 +156,28 @@ export default function Booking() {
           </div>
         )}
 
+        {pending && (
+          <div className="rounded-2xl bg-amber-400/10 border border-amber-400/30 p-4 flex flex-col sm:flex-row sm:items-center gap-3 text-xs sm:text-sm text-amber-200">
+            <Receipt className="h-5 w-5 flex-shrink-0 text-amber-400" />
+            <span className="flex-1">
+              Bạn đang có đơn <b className="font-mono text-white">#{pending.orderCode}</b> ({vnd(pending.totalAmount)}) chờ
+              thanh toán cho suất này. Các ghế đang giữ thuộc về đơn đó nên chưa đổi được.
+            </span>
+            <div className="flex gap-2">
+              <button className="btn btn-ghost !py-2 text-xs" onClick={cancelPending} disabled={busy}>
+                Hủy đơn, chọn lại
+              </button>
+              <button className="btn btn-primary !py-2 text-xs" onClick={() => navigate(`/payment/${pending.orderId}`)}>
+                Thanh toán
+              </button>
+            </div>
+          </div>
+        )}
+
         {seats.length === 0 ? (
           <Spinner label="Đang tải sơ đồ ghế..." />
         ) : (
-          <SeatMap seats={seats} selectedIds={selected} onToggle={toggle} disabled={busy} />
+          <SeatMap seats={seats} selectedIds={selected} onToggle={toggle} disabled={busy || !!pending} />
         )}
 
         {!user && (
@@ -241,9 +286,9 @@ export default function Booking() {
         <button
           className="btn-primary w-full !py-3.5 text-base shadow-glow flex items-center justify-center gap-2"
           disabled={!selected.length || busy || left === 0}
-          onClick={next}
+          onClick={pending ? () => navigate(`/payment/${pending.orderId}`) : next}
         >
-          <span>Tiếp tục thanh toán</span>
+          <span>{pending ? 'Thanh toán đơn đang chờ' : 'Tiếp tục thanh toán'}</span>
           <ArrowRight className="h-4 w-4" />
         </button>
       </aside>

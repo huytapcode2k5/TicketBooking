@@ -34,13 +34,23 @@ export const adminListMovies = asyncHandler(async (req, res) =>
   ok(res, await query('SELECT MovieId, Title, DurationMin, AgeRating, Status, ReleaseDate, PosterUrl FROM Movies ORDER BY MovieId DESC')),
 );
 
+export const adminGetMovie = asyncHandler(async (req, res) => {
+  const id = toId(req.params.id);
+  const [movie] = await query('SELECT * FROM Movies WHERE MovieId = @Id', { Id: id });
+  if (!movie) throw new HttpError(404, 'Không tìm thấy sự kiện.');
+  movie.genreIds = (await query('SELECT GenreId FROM MovieGenres WHERE MovieId = @Id', { Id: id })).map((g) => g.genreId);
+  ok(res, movie);
+});
+
 export const createMovie = asyncHandler(async (req, res) => {
   const b = req.body;
   const [movie] = await query(
     `INSERT INTO Movies (Title, Description, DurationMin, AgeRating, Director, Actors, Language, PosterUrl, BannerUrl, TrailerUrl, ReleaseDate, Status)
      OUTPUT INSERTED.* VALUES (@Title, @Description, @DurationMin, @AgeRating, @Director, @Actors, @Language, @PosterUrl, @BannerUrl, @TrailerUrl, @ReleaseDate, @Status)`,
-    { Title: b.title, Description: b.description ?? null, DurationMin: b.durationMin, AgeRating: b.ageRating, Director: b.director ?? null, Actors: b.actors ?? null,
-      Language: b.language ?? null, PosterUrl: b.posterUrl ?? null, BannerUrl: b.bannerUrl ?? null, TrailerUrl: b.trailerUrl ?? null, ReleaseDate: b.releaseDate ?? null, Status: b.status },
+    {
+      Title: b.title, Description: b.description ?? null, DurationMin: b.durationMin, AgeRating: b.ageRating, Director: b.director ?? null, Actors: b.actors ?? null,
+      Language: b.language ?? null, PosterUrl: b.posterUrl ?? null, BannerUrl: b.bannerUrl ?? null, TrailerUrl: b.trailerUrl ?? null, ReleaseDate: b.releaseDate ?? null, Status: b.status
+    },
   );
   await setGenres(movie.movieId, b.genreIds);
   ok(res, movie, 'Đã tạo sự kiện', 201);
@@ -61,6 +71,13 @@ export const hideMovie = asyncHandler(async (req, res) => {
 
 // ---------- Địa điểm / phòng / ghế ----------
 export const cinemaSchema = z.object({ name: z.string().min(1), address: z.string().min(1), city: z.string().min(1), phone: z.string().optional() });
+export const adminListCinemas = asyncHandler(async (req, res) =>
+  ok(res, await query(
+    `SELECT c.CinemaId, c.Name, c.Address, c.City, c.Phone, c.IsActive,
+            (SELECT COUNT(*) FROM Rooms r WHERE r.CinemaId = c.CinemaId) AS RoomCount
+     FROM Cinemas c ORDER BY c.City, c.Name`)),
+);
+
 export const createCinema = asyncHandler(async (req, res) => {
   const b = req.body;
   const [row] = await query('INSERT INTO Cinemas (Name, Address, City, Phone) OUTPUT INSERTED.* VALUES (@Name, @Address, @City, @Phone)',
@@ -114,7 +131,10 @@ export const createShowtime = asyncHandler(async (req, res) => {
   ok(res, { showtimeId: output.ShowtimeId }, 'Đã tạo suất chiếu', 201);
 });
 export const cancelShowtime = asyncHandler(async (req, res) => {
-  await updateById('Showtimes', 'ShowtimeId', toId(req.params.id), { status: 'CANCELLED' }, { status: 'Status' });
+  const id = toId(req.params.id);
+  const [{ sold }] = await query(`SELECT COUNT(*) AS Sold FROM Tickets WHERE ShowtimeId = @Id AND Status IN ('VALID','USED')`, { Id: id });
+  if (sold > 0) throw new HttpError(400, 'Suất này đã có vé bán. Hãy hoàn vé các đơn liên quan trước khi hủy suất.');
+  await updateById('Showtimes', 'ShowtimeId', id, { status: 'CANCELLED' }, { status: 'Status' });
   ok(res, null, 'Đã hủy suất chiếu');
 });
 

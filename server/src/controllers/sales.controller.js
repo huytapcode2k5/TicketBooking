@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { query, updateById, toId } from '../utils/db.js';
 import { ok, asyncHandler } from '../utils/response.js';
+import { HttpError } from '../utils/httpError.js';
 
 // ---------- Combo ----------
 export const listProducts = asyncHandler(async (req, res) =>
   ok(res, await query('SELECT ProductId, Name, Description, Price, ImageUrl FROM Products WHERE IsActive = 1 ORDER BY Price')),
 );
 export const productSchema = z.object({ name: z.string().min(1), description: z.string().optional(), price: z.number().int().min(0), imageUrl: z.string().optional(), isActive: z.boolean().optional() });
+export const productUpdateSchema = productSchema.partial().extend({ description: z.string().nullable().optional(), imageUrl: z.string().nullable().optional() });
 export const adminListProducts = asyncHandler(async (req, res) => ok(res, await query('SELECT * FROM Products ORDER BY ProductId DESC')));
 export const createProduct = asyncHandler(async (req, res) => {
   const b = req.body;
@@ -25,10 +27,11 @@ export const validateCouponSchema = z.object({ code: z.string().min(1), subTotal
 export const validateCoupon = asyncHandler(async (req, res) => {
   const { code, subTotal } = req.body;
   const [c] = await query(
-    `SELECT Code, Description, DiscountType, DiscountValue, MaxDiscount FROM Coupons
-     WHERE Code = @Code AND IsActive = 1 AND SYSUTCDATETIME() BETWEEN StartAt AND EndAt
-       AND (MaxUses IS NULL OR UsedCount < MaxUses) AND MinOrderAmount <= @SubTotal`,
-    { Code: code.trim(), SubTotal: subTotal },
+    `SELECT Code, Description, DiscountType, DiscountValue, MaxDiscount FROM Coupons c
+     WHERE Code = @Code AND IsActive = 1 AND SYSUTCDATETIME() BETWEEN StartAt AND EndAt AND MinOrderAmount <= @SubTotal
+       AND (MaxUses IS NULL OR UsedCount + (SELECT COUNT(*) FROM Orders o WHERE o.CouponId = c.CouponId AND o.Status = 'PENDING'
+                                            AND o.ExpiresAt > SYSUTCDATETIME() AND o.UserId <> @UserId) < MaxUses)`,
+    { Code: code.trim(), SubTotal: subTotal, UserId: req.user.userId },
   );
   if (!c) return ok(res, { valid: false, discountAmount: 0 }, 'Mã giảm giá không hợp lệ hoặc chưa đủ điều kiện.');
   let discount = c.discountType === 'PERCENT' ? Math.floor((subTotal * c.discountValue) / 100) : c.discountValue;
@@ -36,14 +39,30 @@ export const validateCoupon = asyncHandler(async (req, res) => {
   ok(res, { valid: true, code: c.code, description: c.description, discountAmount: Math.min(discount, subTotal) }, 'Áp dụng mã thành công');
 });
 
+const isoDate = z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'ngày giờ không hợp lệ');
+const endAfterStart = (b) => !b.startAt || !b.endAt || new Date(b.endAt) > new Date(b.startAt);
+const endAfterStartMsg = { message: 'phải sau thời điểm bắt đầu', path: ['endAt'] };
+
 export const couponSchema = z.object({
-  code: z.string().min(1), description: z.string().optional(), discountType: z.enum(['PERCENT', 'FIXED']), discountValue: z.number().int().positive(),
-  maxDiscount: z.number().int().optional(), minOrderAmount: z.number().int().min(0).default(0), maxUses: z.number().int().optional(),
-  startAt: z.string(), endAt: z.string(),
-});
+  code: z.string().trim().min(1).max(50).regex(/^[A-Za-z0-9_-]+$/, 'chỉ gồm chữ, số, - và _'), description: z.string().optional(),
+  discountType: z.enum(['PERCENT', 'FIXED']), discountValue: z.number().int().positive(),
+  maxDiscount: z.number().int().positive().optional(), minOrderAmount: z.number().int().min(0).default(0), maxUses: z.number().int().positive().optional(),
+  startAt: isoDate, endAt: isoDate,
+})
+  .refine((b) => b.discountType !== 'PERCENT' || b.discountValue <= 100, { message: 'phần trăm giảm tối đa 100', path: ['discountValue'] })
+  .refine(endAfterStart, endAfterStartMsg);
+// Không cho đổi mã, loại và giá trị giảm sau khi tạo để không lệch với các đơn đã dùng mã
+export const couponUpdateSchema = z.object({
+  description: z.string().nullable().optional(), maxDiscount: z.number().int().positive().nullable().optional(),
+  minOrderAmount: z.number().int().min(0).optional(), maxUses: z.number().int().positive().nullable().optional(),
+  startAt: isoDate.optional(), endAt: isoDate.optional(), isActive: z.boolean().optional(),
+}).refine(endAfterStart, endAfterStartMsg);
+
 export const adminListCoupons = asyncHandler(async (req, res) => ok(res, await query('SELECT * FROM Coupons ORDER BY CouponId DESC')));
 export const createCoupon = asyncHandler(async (req, res) => {
   const b = req.body;
+  const [dup] = await query('SELECT 1 AS x FROM Coupons WHERE Code = @Code', { Code: b.code.toUpperCase() });
+  if (dup) throw new HttpError(409, `Mã ${b.code.toUpperCase()} đã tồn tại.`);
   const [row] = await query(
     `INSERT INTO Coupons (Code, Description, DiscountType, DiscountValue, MaxDiscount, MinOrderAmount, MaxUses, StartAt, EndAt)
      OUTPUT INSERTED.* VALUES (@Code, @Description, @DiscountType, @DiscountValue, @MaxDiscount, @MinOrderAmount, @MaxUses, @StartAt, @EndAt)`,
@@ -52,9 +71,22 @@ export const createCoupon = asyncHandler(async (req, res) => {
   );
   ok(res, row, 'Đã tạo mã giảm giá', 201);
 });
-export const updateCoupon = asyncHandler(async (req, res) =>
-  ok(res, await updateById('Coupons', 'CouponId', toId(req.params.id), req.body, { description: 'Description', maxDiscount: 'MaxDiscount', minOrderAmount: 'MinOrderAmount', maxUses: 'MaxUses', isActive: 'IsActive' })),
-);
+export const updateCoupon = asyncHandler(async (req, res) => {
+  const id = toId(req.params.id);
+  const b = { ...req.body };
+  if (b.startAt) b.startAt = new Date(b.startAt);
+  if (b.endAt) b.endAt = new Date(b.endAt);
+  // Chỉ đổi một đầu khoảng thời gian thì so với đầu còn lại đang lưu trong DB
+  if (b.startAt || b.endAt) {
+    const [cur] = await query('SELECT StartAt, EndAt FROM Coupons WHERE CouponId = @Id', { Id: id });
+    if (!cur) throw new HttpError(404, 'Không tìm thấy mã giảm giá.');
+    if ((b.endAt ?? cur.endAt) <= (b.startAt ?? cur.startAt)) throw new HttpError(400, 'endAt: phải sau thời điểm bắt đầu');
+  }
+  ok(res, await updateById('Coupons', 'CouponId', id, b, {
+    description: 'Description', maxDiscount: 'MaxDiscount', minOrderAmount: 'MinOrderAmount', maxUses: 'MaxUses',
+    startAt: 'StartAt', endAt: 'EndAt', isActive: 'IsActive',
+  }), 'Đã cập nhật mã giảm giá');
+});
 
 // ---------- Thống kê (dashboard) ----------
 // "Hôm nay" tính theo giờ Việt Nam (UTC+7)
@@ -85,6 +117,18 @@ export const revenueByDay = asyncHandler(async (req, res) =>
 export const revenueByMovie = asyncHandler(async (req, res) =>
   ok(res, await query('SELECT TOP 10 MovieId, Title, TicketsSold, TicketRevenue FROM vw_RevenueByMovie ORDER BY TicketsSold DESC')),
 );
+/** Tỷ lệ lấp đầy từng suất sắp diễn ra, suất đầy nhất trước (cùng mức thì suất gần hơn trước), mặc định 10 suất. */
+export const fillRateByShowtime = asyncHandler(async (req, res) => {
+  const rows = await query(
+    `SELECT TOP (@Limit) ShowtimeId, MovieTitle, CinemaName, StartTime, SoldSeats, TotalSeats,
+            CASE WHEN TotalSeats = 0 THEN 0 ELSE ROUND(SoldSeats * 100.0 / TotalSeats, 1) END AS FillRate
+     FROM vw_ShowtimeSummary
+     WHERE Status = 'SCHEDULED' AND StartTime > SYSUTCDATETIME()
+     ORDER BY FillRate DESC, StartTime`,
+    { Limit: Math.min(Number(req.query.limit) || 10, 30) },
+  );
+  ok(res, rows);
+});
 export const recentOrders = asyncHandler(async (req, res) => {
   const rows = await query(
     `SELECT TOP 10 o.OrderId, o.OrderCode, o.TotalAmount, o.Status, o.CreatedAt, u.FullName
