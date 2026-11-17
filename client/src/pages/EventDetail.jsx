@@ -15,7 +15,9 @@ import {
   Armchair, 
   AlertCircle,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Ticket,
+  ArrowDown
 } from 'lucide-react';
 
 export default function EventDetail() {
@@ -149,9 +151,18 @@ export default function EventDetail() {
               )}
             </div>
 
-            {/* Trailer Action */}
-            {movie.trailerUrl && (
-              <div className="pt-2">
+            {/* Action Buttons */}
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              <a
+                href="#showtimes-section"
+                className="relative overflow-hidden group/cta inline-flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold text-white tracking-wide bg-gradient-to-r from-accent via-rose-600 to-amber-500 hover:from-rose-500 hover:via-accent hover:to-amber-400 shadow-[0_0_20px_rgba(255,69,100,0.45)] hover:shadow-[0_0_30px_rgba(255,69,100,0.65)] border border-white/20 active:scale-95 transition-all duration-300 before:absolute before:inset-0 before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent"
+              >
+                <Ticket className="h-4 w-4 transition-transform duration-300 group-hover/cta:rotate-12 group-hover/cta:scale-110" />
+                <span>Đặt vé ngay</span>
+                <ArrowDown className="h-3.5 w-3.5 transition-transform duration-300 group-hover/cta:translate-y-0.5" />
+              </a>
+
+              {movie.trailerUrl && (
                 <a
                   className="btn-ghost !px-5 !py-2.5 text-xs sm:text-sm shadow-sm flex items-center gap-2 inline-flex"
                   href={movie.trailerUrl}
@@ -161,14 +172,14 @@ export default function EventDetail() {
                   <Play className="h-4 w-4 text-accent fill-accent" />
                   <span>Xem Trailer chính thức</span>
                 </a>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </section>
 
       {/* Showtime Booking Section */}
-      <section className="card p-6 sm:p-8 space-y-6">
+      <section id="showtimes-section" className="card p-6 sm:p-8 space-y-6 scroll-mt-6">
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-xl bg-accent/20 flex items-center justify-center text-accent">
@@ -253,11 +264,14 @@ export default function EventDetail() {
 
                           {!isSoldOut ? (
                             <Link
-                              className="btn-primary !py-2 !px-3.5 text-xs shadow-glow-sm"
+                              className="relative overflow-hidden group/btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white tracking-wide bg-gradient-to-r from-accent to-rose-600 hover:from-rose-500 hover:to-accent border border-white/20 shadow-glow-sm hover:shadow-glow active:scale-95 transition-all duration-200 before:absolute before:inset-0 before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-500 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent"
                               to={`/booking/${s.showtimeId}`}
+                              onClick={() => {
+                                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                              }}
                             >
                               <span>Chọn ghế</span>
-                              <ChevronRight className="h-3 w-3" />
+                              <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover/btn:translate-x-1" />
                             </Link>
                           ) : (
                             <span className="px-3 py-1.5 rounded-lg bg-white/5 text-[11px] font-bold text-slate-500 border border-white/5">

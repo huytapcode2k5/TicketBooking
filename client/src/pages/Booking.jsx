@@ -52,6 +52,11 @@ export default function Booking() {
     setPending(r.data);
   }, [id, user]);
 
+  // Luôn đảm bảo khi vào trang Chọn ghế thì màn hình ở trên cùng
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [id]);
+
   useEffect(() => {
     api.get(`/showtimes/${id}`).then((r) => setShowtime(r.data)).catch((e) => setError(e.message));
     loadSeats().catch((e) => setError(e.message));

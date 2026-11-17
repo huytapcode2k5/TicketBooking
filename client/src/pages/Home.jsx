@@ -16,7 +16,8 @@ import {
   Star, 
   ChevronDown,
   Clock,
-  Film
+  Film,
+  ArrowRight
 } from 'lucide-react';
 
 const STATUS_TABS = [
@@ -119,19 +120,22 @@ export default function Home() {
               {featured.description || featured.genres || 'Trải nghiệm suất chiếu điện ảnh mãn nhãn với công nghệ âm thanh vòm sống động.'}
             </p>
 
-            <div className="pt-2 flex flex-wrap items-center gap-3">
+            <div className="pt-2 flex flex-wrap items-center gap-4">
               <Link
                 to={`/events/${featured.movieId}`}
-                className="btn-primary !px-6 !py-3 text-base shadow-glow flex items-center gap-2 group/btn"
+                className="relative overflow-hidden group/btn inline-flex items-center gap-3 px-7 py-3.5 rounded-2xl text-base font-extrabold text-white tracking-wide bg-gradient-to-r from-accent via-rose-600 to-amber-500 hover:from-rose-500 hover:via-accent hover:to-amber-400 shadow-[0_0_25px_rgba(255,69,100,0.5),0_4px_16px_rgba(0,0,0,0.4)] hover:shadow-[0_0_40px_rgba(255,69,100,0.8),0_6px_24px_rgba(0,0,0,0.5)] border border-white/25 ring-1 ring-white/10 active:scale-95 transition-all duration-300 before:absolute before:inset-0 before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent"
               >
-                <Ticket className="h-5 w-5 transition-transform group-hover/btn:rotate-12" />
+                <div className="h-7 w-7 rounded-lg bg-white/20 flex items-center justify-center shadow-inner group-hover/btn:rotate-12 group-hover/btn:scale-110 transition-transform duration-300">
+                  <Ticket className="h-4 w-4 text-white" />
+                </div>
                 <span>Đặt vé ngay</span>
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1.5" />
               </Link>
 
               {featured.minPrice != null && (
-                <div className="px-4 py-2.5 rounded-xl bg-white/[0.08] backdrop-blur-md border border-white/10 text-xs sm:text-sm">
-                  <span className="text-slate-400">Giá vé từ: </span>
-                  <span className="font-mono font-bold text-amber-300 text-sm sm:text-base">
+                <div className="px-4 py-3 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/15 text-xs sm:text-sm flex items-center gap-2">
+                  <span className="text-slate-400">Giá vé từ:</span>
+                  <span className="font-mono font-extrabold text-amber-300 text-sm sm:text-base">
                     {vnd(featured.minPrice)}
                   </span>
                 </div>
