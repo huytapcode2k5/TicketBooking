@@ -12,9 +12,11 @@ r.use(requireAuth, requireRole('ADMIN'));
 
 // A: nội dung
 r.get('/movies', a.adminListMovies);
+r.get('/movies/:id', a.adminGetMovie);
 r.post('/movies', validate(a.movieSchema), a.createMovie);
 r.put('/movies/:id', a.updateMovie);
 r.delete('/movies/:id', a.hideMovie);
+r.get('/cinemas', a.adminListCinemas);
 r.post('/cinemas', validate(a.cinemaSchema), a.createCinema);
 r.put('/cinemas/:id', a.updateCinema);
 r.get('/rooms', a.listRooms);
