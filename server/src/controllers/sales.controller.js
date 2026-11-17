@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { query, updateById, toId } from '../utils/db.js';
 import { ok, asyncHandler } from '../utils/response.js';
 import { HttpError } from '../utils/httpError.js';
+import { saveDataUri } from '../utils/file.js';
 
 // ---------- Combo ----------
 export const listProducts = asyncHandler(async (req, res) =>
@@ -12,13 +13,16 @@ export const productUpdateSchema = productSchema.partial().extend({ description:
 export const adminListProducts = asyncHandler(async (req, res) => ok(res, await query('SELECT * FROM Products ORDER BY ProductId DESC')));
 export const createProduct = asyncHandler(async (req, res) => {
   const b = req.body;
+  const imageUrl = saveDataUri(b.imageUrl) ?? null;
   const [row] = await query('INSERT INTO Products (Name, Description, Price, ImageUrl) OUTPUT INSERTED.* VALUES (@Name, @Description, @Price, @ImageUrl)',
-    { Name: b.name, Description: b.description ?? null, Price: b.price, ImageUrl: b.imageUrl ?? null });
+    { Name: b.name, Description: b.description ?? null, Price: b.price, ImageUrl: imageUrl });
   ok(res, row, 'Đã tạo combo', 201);
 });
-export const updateProduct = asyncHandler(async (req, res) =>
-  ok(res, await updateById('Products', 'ProductId', toId(req.params.id), req.body, { name: 'Name', description: 'Description', price: 'Price', imageUrl: 'ImageUrl', isActive: 'IsActive' })),
-);
+export const updateProduct = asyncHandler(async (req, res) => {
+  const body = { ...req.body };
+  if (body.imageUrl) body.imageUrl = saveDataUri(body.imageUrl);
+  ok(res, await updateById('Products', 'ProductId', toId(req.params.id), body, { name: 'Name', description: 'Description', price: 'Price', imageUrl: 'ImageUrl', isActive: 'IsActive' }));
+});
 
 // ---------- Mã giảm giá ----------
 export const validateCouponSchema = z.object({ code: z.string().min(1), subTotal: z.number().int().min(0) });

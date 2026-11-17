@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { query, callProc, updateById, toId, sql } from '../utils/db.js';
 import { HttpError } from '../utils/httpError.js';
 import { ok, asyncHandler } from '../utils/response.js';
+import { saveDataUri } from '../utils/file.js';
 
 // ---------- Phim / sự kiện ----------
 export const movieSchema = z.object({
@@ -44,12 +45,14 @@ export const adminGetMovie = asyncHandler(async (req, res) => {
 
 export const createMovie = asyncHandler(async (req, res) => {
   const b = req.body;
+  const posterUrl = saveDataUri(b.posterUrl) ?? null;
+  const bannerUrl = saveDataUri(b.bannerUrl) ?? null;
   const [movie] = await query(
     `INSERT INTO Movies (Title, Description, DurationMin, AgeRating, Director, Actors, Language, PosterUrl, BannerUrl, TrailerUrl, ReleaseDate, Status)
      OUTPUT INSERTED.* VALUES (@Title, @Description, @DurationMin, @AgeRating, @Director, @Actors, @Language, @PosterUrl, @BannerUrl, @TrailerUrl, @ReleaseDate, @Status)`,
     {
       Title: b.title, Description: b.description ?? null, DurationMin: b.durationMin, AgeRating: b.ageRating, Director: b.director ?? null, Actors: b.actors ?? null,
-      Language: b.language ?? null, PosterUrl: b.posterUrl ?? null, BannerUrl: b.bannerUrl ?? null, TrailerUrl: b.trailerUrl ?? null, ReleaseDate: b.releaseDate || null, Status: b.status
+      Language: b.language ?? null, PosterUrl: posterUrl, BannerUrl: bannerUrl, TrailerUrl: b.trailerUrl ?? null, ReleaseDate: b.releaseDate || null, Status: b.status
     },
   );
   if (Array.isArray(b.genreIds)) await setGenres(movie.movieId, b.genreIds);
@@ -60,6 +63,8 @@ export const updateMovie = asyncHandler(async (req, res) => {
   const id = toId(req.params.id);
   const { genreIds, ...rest } = req.body;
   if (rest.releaseDate === '') rest.releaseDate = null;
+  if (rest.posterUrl) rest.posterUrl = saveDataUri(rest.posterUrl);
+  if (rest.bannerUrl) rest.bannerUrl = saveDataUri(rest.bannerUrl);
   const movie = Object.keys(rest).length ? await updateById('Movies', 'MovieId', id, rest, MOVIE_FIELDS) : null;
   if (Array.isArray(genreIds)) await setGenres(id, genreIds);
   ok(res, movie, 'Đã cập nhật');
