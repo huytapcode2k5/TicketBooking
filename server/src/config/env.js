@@ -24,12 +24,7 @@ export const env = {
     encrypt: bool(process.env.DB_ENCRYPT, false),
     trustCert: bool(process.env.DB_TRUST_CERT, true),
   },
-  payos: {
-    clientId: process.env.PAYOS_CLIENT_ID,
-    apiKey: process.env.PAYOS_API_KEY,
-    checksumKey: process.env.PAYOS_CHECKSUM_KEY,
-  },
-  // URL công khai của server (Cloudflare Tunnel / ngrok) để cổng thanh toán gọi IPN/webhook về
+  // URL công khai của server (Cloudflare Tunnel / ngrok) để cổng thanh toán gọi IPN về
   publicUrl: (process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 5000}`).replace(/\/$/, ''),
   momo: {
     partnerCode: process.env.MOMO_PARTNER_CODE,

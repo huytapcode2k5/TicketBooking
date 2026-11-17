@@ -290,7 +290,7 @@ export default function Checkout() {
           onClick={pay}
         >
           <CreditCard className="h-4 w-4" />
-          <span>{submitting ? 'Đang tạo giao dịch...' : 'Thanh toán qua PayOS'}</span>
+          <span>{submitting ? 'Đang tạo giao dịch...' : 'Tiến hành thanh toán MoMo'}</span>
           <ArrowRight className="h-4 w-4" />
         </button>
 
@@ -304,7 +304,7 @@ export default function Checkout() {
 
         <div className="pt-2 text-center text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-          <span>Giao dịch bảo mật 100% qua cổng VietQR PayOS</span>
+          <span>Giao dịch bảo mật qua cổng thanh toán MoMo</span>
         </div>
       </aside>
     </div>

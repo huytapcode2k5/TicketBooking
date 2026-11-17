@@ -22,7 +22,7 @@ export default function PaymentResult() {
   const [tries, setTries] = useState(0);
 
   useEffect(() => {
-    // PayOS hủy: ?cancelled=1. MoMo quay về kèm ?resultCode=...; khác 0 nghĩa là không thanh toán thành công
+    // Người dùng hủy: ?cancelled=1. MoMo quay về kèm ?resultCode=...; khác 0 nghĩa là không thanh toán thành công
     const momoCode = params.get('resultCode');
     if (params.get('cancelled') || (momoCode && momoCode !== '0')) {
       api.post(`/orders/${orderId}/cancel`, {}).catch(() => {});

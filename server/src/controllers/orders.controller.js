@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { query, callProc, toId } from '../utils/db.js';
 import { HttpError } from '../utils/httpError.js';
 import { ok, asyncHandler } from '../utils/response.js';
-import { cancelPaymentLink } from '../services/payment.service.js';
 import { emitSeats } from '../sockets/seat.socket.js';
 
 export const createOrderSchema = z.object({
@@ -19,8 +18,6 @@ export const createOrder = asyncHandler(async (req, res) => {
     CouponCode: couponCode?.trim() || null, CombosJson: combos?.length ? JSON.stringify(combos) : null,
   });
   const { replacedOrderCode, ...o } = rows[0];
-  // Đơn chờ cũ của cùng suất vừa bị thay: hủy link PayOS để khách không trả nhầm 2 lần
-  if (replacedOrderCode) cancelPaymentLink(replacedOrderCode, 'Thay bang don moi');
   ok(res, { ...o, orderCode: Number(o.orderCode) }, 'Đã tạo đơn hàng', 201);
 });
 
@@ -56,13 +53,12 @@ export const getOrder = asyncHandler(async (req, res) => {
   ok(res, order);
 });
 
-/** Hủy đơn chưa thanh toán: nhả ghế + hủy link PayOS. */
+/** Hủy đơn chưa thanh toán: nhả ghế. */
 export const cancelOrder = asyncHandler(async (req, res) => {
   const id = toId(req.params.id);
   const seats = await query(`SELECT oi.ShowtimeId, oi.SeatId, o.OrderCode FROM OrderItems oi JOIN Orders o ON o.OrderId = oi.OrderId
                              WHERE oi.OrderId = @Id AND oi.ItemType = 'TICKET' AND o.UserId = @UserId`, { Id: id, UserId: req.user.userId });
   await callProc('sp_CancelOrder', { OrderId: id, UserId: req.user.userId, Reason: req.body?.reason ?? 'Người dùng hủy' });
-  if (seats[0]) cancelPaymentLink(seats[0].orderCode);
   const byShowtime = new Map();
   for (const s of seats) byShowtime.set(s.showtimeId, [...(byShowtime.get(s.showtimeId) ?? []), s.seatId]);
   for (const [showtimeId, ids] of byShowtime) emitSeats('seat:released', showtimeId, ids);

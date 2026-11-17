@@ -38,9 +38,10 @@ Lỗi nghiệp vụ từ procedure (mã 50001–50052) trả HTTP 400, riêng gh
 
 | Phương thức | Đường dẫn | Mô tả |
 |---|---|---|
-| POST | /api/payments/create | Tạo link/QR PayOS `{ orderId }` |
-| POST | /api/payments/webhook | PayOS gọi (không JWT, xác thực bằng chữ ký) |
-| GET | /api/payments/:orderId/status | Trạng thái đơn để client hỏi lại |
+| POST | /api/payments/create | Tạo link/QR MoMo `{ orderId }` |
+| POST | /api/payments/momo/ipn | MoMo gọi IPN (không JWT, xác thực bằng chữ ký HMAC-SHA256) |
+| GET | /api/payments/:orderId/status | Trạng thái đơn để client hỏi lại / tự động đối soát |
+| POST | /api/payments/:orderId/simulate-success | Giả lập thanh toán thành công (Dev/Demo) |
 | GET | /api/tickets/me, /api/tickets/:id | Vé kèm ảnh QR |
 | POST | /api/staff/checkin | Soát vé `{ qrToken }` (STAFF/ADMIN) |
 | POST | /api/orders/:id/refund | Hoàn vé (người dùng) |

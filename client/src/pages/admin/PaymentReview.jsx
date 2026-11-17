@@ -48,7 +48,7 @@ export default function PaymentReview() {
               Không có giao dịch nào cần xử lý
             </h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Tất cả các khoản thanh toán qua cổng PayOS đều khớp 100% với đơn hàng.
+              Tất cả các khoản thanh toán qua cổng MoMo đều khớp 100% với đơn hàng.
             </p>
           </div>
         ) : (
