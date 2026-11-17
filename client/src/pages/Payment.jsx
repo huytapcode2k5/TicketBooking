@@ -18,7 +18,9 @@ import {
   RotateCcw,
   Smartphone,
   Sparkles,
-  ArrowLeft
+  ArrowLeft,
+  Zap,
+  Info
 } from 'lucide-react';
 
 const PROVIDERS = [
@@ -30,12 +32,12 @@ export default function Payment() {
   const { orderId } = useParams();
   const [search] = useSearchParams();
   const navigate = useNavigate();
-  // Ưu tiên MoMo khi PayOS chưa cấu hình, hoặc theo param url
   const initialProvider = search.get('provider') || 'MOMO';
   const [provider, setProvider] = useState(initialProvider);
   const [pay, setPay] = useState(null);
   const [error, setError] = useState('');
   const [copiedField, setCopiedField] = useState('');
+  const [simulating, setSimulating] = useState(false);
   const done = useRef(false);
 
   const goResult = () => {
@@ -91,8 +93,21 @@ export default function Payment() {
     navigate('/');
   };
 
+  // Nút giả lập thanh toán thành công dành cho Dev / Demo
+  const simulateSuccess = async () => {
+    try {
+      setSimulating(true);
+      await api.post(`/payments/${orderId}/simulate-success`, {});
+      goResult();
+    } catch (e) {
+      setError(e.message || 'Không thể giả lập thanh toán.');
+    } finally {
+      setSimulating(false);
+    }
+  };
+
   return (
-    <div className="max-w-lg mx-auto space-y-6 py-6">
+    <div className="max-w-lg mx-auto space-y-6 py-6 px-4">
       <div className="card p-6 md:p-8 space-y-6 border border-white/10 shadow-2xl relative overflow-hidden">
         {/* Glow ambient background */}
         <div className="absolute -top-24 -left-24 w-60 h-60 bg-accent/15 rounded-full blur-3xl pointer-events-none" />
@@ -105,7 +120,7 @@ export default function Payment() {
             <span>Cổng thanh toán bảo mật</span>
           </div>
           <h1 className="text-2xl font-bold font-display text-white">Thanh toán vé xem phim</h1>
-          <p className="text-sm text-slate-400">Chọn phương thức thanh toán thuận tiện nhất cho bạn</p>
+          <p className="text-sm text-slate-400">Chọn phương thức thanh toán thử nghiệm</p>
         </div>
 
         {/* Tabs chọn cổng */}
@@ -174,7 +189,7 @@ export default function Payment() {
                 </div>
                 <div className="mt-2 text-xs text-slate-400 flex items-center justify-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-gold" />
-                  <span>Quét mã bằng app {provider === 'MOMO' ? 'MoMo' : 'Ngân hàng / VietQR'}</span>
+                  <span>Quét bằng app {provider === 'MOMO' ? 'MoMo Test' : 'Ngân hàng / VietQR'}</span>
                 </div>
               </div>
             )}
@@ -222,21 +237,32 @@ export default function Payment() {
                 </div>
               </div>
             ) : (
-              <div className="text-sm text-left rounded-xl bg-surface2/80 border border-white/5 p-4 space-y-2 text-slate-300">
+              <div className="text-sm text-left rounded-xl bg-surface2/80 border border-white/5 p-4 space-y-3 text-slate-300">
                 <div className="flex items-center gap-2 text-pink-400 font-semibold text-xs uppercase tracking-wider">
                   <Smartphone className="h-4 w-4" />
-                  <span>Hướng dẫn MoMo Sandbox</span>
+                  <span>Cổng MoMo Sandbox (Môi trường Test)</span>
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  {pay.qrCode 
-                    ? '1. Mở app MoMo Test trên điện thoại và quét mã QR ở trên.' 
-                    : '1. Bấm nút bên dưới để chuyển tiếp sang trang thanh toán MoMo.'}
-                </p>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  2. Hoặc bạn có thể bấm nút <strong>"Thanh toán qua MoMo"</strong> bên dưới để duyệt giao diện web của MoMo.
-                </p>
-                <div className="pt-1 text-[11px] text-slate-500 border-t border-white/5">
-                  Môi trường thử nghiệm: Hoàn toàn không trừ tiền thật.
+
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs space-y-1.5 text-amber-200/90">
+                  <div className="flex items-start gap-1.5 font-semibold text-amber-300">
+                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>Lý do app MoMo trên điện thoại báo "Giao dịch không tồn tại":</span>
+                  </div>
+                  <p className="leading-relaxed pl-5">
+                    App MoMo thông thường trên điện thoại của bạn chạy ở môi trường <strong>Production</strong> (thật). Mã QR này do hệ thống <strong>Sandbox</strong> (test) tạo ra, nên app thật sẽ không nhận diện được.
+                  </p>
+                </div>
+
+                <div className="text-xs space-y-1 text-slate-300">
+                  <p className="font-semibold text-white">Cách thanh toán thử nghiệm:</p>
+                  <p>1. Bấm nút <strong>"Mở trang thanh toán MoMo Sandbox"</strong> bên dưới.</p>
+                  <p>2. Trên trang MoMo, chọn thanh toán thẻ ATM và dùng thẻ test:</p>
+                  <div className="p-2.5 bg-black/30 rounded border border-white/5 font-mono text-[11px] space-y-0.5 text-slate-300">
+                    <div>Ngân hàng: <span className="text-accent font-semibold">NCB</span></div>
+                    <div>Số thẻ: <span className="text-accent font-semibold">9704198526191432198</span></div>
+                    <div>Chủ thẻ: <span className="text-accent font-semibold">NGUYEN VAN A</span> (Ngày: 07/15)</div>
+                    <div>Mã OTP xác thực: <span className="text-accent font-semibold">000000</span></div>
+                  </div>
                 </div>
               </div>
             )}
@@ -254,39 +280,40 @@ export default function Payment() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="flex flex-col gap-2.5 pt-2">
               <a
                 href={pay.checkoutUrl}
                 target="_blank"
                 rel="noreferrer"
-                className={`flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition shadow-lg ${
+                className={`w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition shadow-lg ${
                   provider === 'MOMO'
                     ? 'bg-pink-600 hover:bg-pink-500 text-white shadow-pink-600/30'
                     : 'btn-primary shadow-accent/20'
                 }`}
               >
-                <span>{provider === 'MOMO' ? 'Thanh toán qua MoMo' : 'Mở trang thanh toán PayOS'}</span>
+                <span>{provider === 'MOMO' ? 'Mở trang thanh toán MoMo Sandbox' : 'Mở trang thanh toán PayOS'}</span>
                 <ExternalLink className="h-4 w-4" />
               </a>
 
+              {/* Nút Giả lập thanh toán nhanh cho Dev / Demo */}
+              <button
+                onClick={simulateSuccess}
+                disabled={simulating}
+                className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 transition"
+                title="Bấm để xác nhận đơn hàng thành công ngay lập tức mà không cần nhập thẻ"
+              >
+                <Zap className="h-3.5 w-3.5 text-emerald-400 fill-emerald-400" />
+                <span>{simulating ? 'Đang xác nhận...' : '⚡ Giả lập thanh toán thành công (Dành cho Dev / Demo)'}</span>
+              </button>
+
               <button 
                 onClick={cancel} 
-                className="btn-ghost flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 text-sm text-slate-400 hover:text-white"
+                className="btn-ghost w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 text-xs text-slate-400 hover:text-white"
               >
-                <RotateCcw className="h-4 w-4" />
-                <span>Hủy thanh toán</span>
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Hủy thanh toán & nhả ghế</span>
               </button>
             </div>
-
-            {provider === 'MOMO' && pay.deeplink && (
-              <a 
-                href={pay.deeplink}
-                className="btn-ghost w-full inline-flex items-center justify-center gap-2 text-sm sm:hidden"
-              >
-                <Smartphone className="h-4 w-4" />
-                <span>Mở bằng App MoMo</span>
-              </a>
-            )}
           </div>
         )}
       </div>

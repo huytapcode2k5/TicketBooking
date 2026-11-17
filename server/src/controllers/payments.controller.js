@@ -163,3 +163,22 @@ export const paymentsNeedReview = asyncHandler(async (req, res) => {
   const rows = await query('SELECT * FROM vw_PaymentsNeedReview ORDER BY PaidAt DESC');
   ok(res, rows.map((r) => ({ ...r, orderCode: Number(r.orderCode) })));
 });
+
+/** POST /api/payments/:orderId/simulate-success - Dành cho dev/test thử nghiệm luồng thanh toán nhanh */
+export const simulatePaymentSuccess = asyncHandler(async (req, res) => {
+  const orderId = toId(req.params.orderId, 'orderId');
+  const [order] = await query('SELECT OrderId, OrderCode, TotalAmount, Status FROM Orders WHERE OrderId = @Id AND UserId = @UserId', {
+    Id: orderId, UserId: req.user.userId,
+  });
+  if (!order) throw new HttpError(404, 'Không tìm thấy đơn hàng.');
+  if (order.status !== 'PENDING') throw new HttpError(400, 'Đơn hàng không ở trạng thái chờ thanh toán.');
+
+  const result = await confirmPayment({
+    orderCode: Number(order.orderCode),
+    amount: order.totalAmount,
+    providerRef: `SIMULATED_${Date.now()}`,
+    raw: { provider: 'SIMULATED', note: 'Thanh toán giả lập môi trường phát triển (Dev Demo)' },
+  });
+
+  ok(res, result, 'Đã giả lập thanh toán thành công!');
+});
