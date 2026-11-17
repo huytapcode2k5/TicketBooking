@@ -49,18 +49,19 @@ export const createMovie = asyncHandler(async (req, res) => {
      OUTPUT INSERTED.* VALUES (@Title, @Description, @DurationMin, @AgeRating, @Director, @Actors, @Language, @PosterUrl, @BannerUrl, @TrailerUrl, @ReleaseDate, @Status)`,
     {
       Title: b.title, Description: b.description ?? null, DurationMin: b.durationMin, AgeRating: b.ageRating, Director: b.director ?? null, Actors: b.actors ?? null,
-      Language: b.language ?? null, PosterUrl: b.posterUrl ?? null, BannerUrl: b.bannerUrl ?? null, TrailerUrl: b.trailerUrl ?? null, ReleaseDate: b.releaseDate ?? null, Status: b.status
+      Language: b.language ?? null, PosterUrl: b.posterUrl ?? null, BannerUrl: b.bannerUrl ?? null, TrailerUrl: b.trailerUrl ?? null, ReleaseDate: b.releaseDate || null, Status: b.status
     },
   );
-  await setGenres(movie.movieId, b.genreIds);
+  if (Array.isArray(b.genreIds)) await setGenres(movie.movieId, b.genreIds);
   ok(res, movie, 'Đã tạo sự kiện', 201);
 });
 
 export const updateMovie = asyncHandler(async (req, res) => {
   const id = toId(req.params.id);
   const { genreIds, ...rest } = req.body;
+  if (rest.releaseDate === '') rest.releaseDate = null;
   const movie = Object.keys(rest).length ? await updateById('Movies', 'MovieId', id, rest, MOVIE_FIELDS) : null;
-  if (genreIds) await setGenres(id, genreIds);
+  if (Array.isArray(genreIds)) await setGenres(id, genreIds);
   ok(res, movie, 'Đã cập nhật');
 });
 
