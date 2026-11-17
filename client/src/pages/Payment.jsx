@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../api/axios.js';
 import { useSocketEvent } from '../hooks/useSocketEvent.js';
@@ -8,6 +8,7 @@ import CountdownTimer from '../components/booking/CountdownTimer.jsx';
 import Spinner from '../components/common/Spinner.jsx';
 import { vnd } from '../utils/format.js';
 import { 
+  CreditCard, 
   QrCode, 
   Copy, 
   Check, 
@@ -15,12 +16,23 @@ import {
   ShieldCheck, 
   AlertCircle, 
   RotateCcw,
-  Sparkles
+  Smartphone,
+  Sparkles,
+  ArrowLeft
 } from 'lucide-react';
+
+const PROVIDERS = [
+  { id: 'MOMO', label: 'Ví MoMo (Test)', icon: Smartphone },
+  { id: 'PAYOS', label: 'PayOS · VietQR', icon: QrCode },
+];
 
 export default function Payment() {
   const { orderId } = useParams();
+  const [search] = useSearchParams();
   const navigate = useNavigate();
+  // Ưu tiên MoMo khi PayOS chưa cấu hình, hoặc theo param url
+  const initialProvider = search.get('provider') || 'MOMO';
+  const [provider, setProvider] = useState(initialProvider);
   const [pay, setPay] = useState(null);
   const [error, setError] = useState('');
   const [copiedField, setCopiedField] = useState('');
@@ -32,167 +44,258 @@ export default function Payment() {
     navigate(`/payment/result?orderId=${orderId}`, { replace: true });
   };
 
+  // Tạo (hoặc lấy lại) link thanh toán của cổng đang chọn; đổi tab thì tạo lại
   useEffect(() => {
-    api
-      .post('/payments/create', { orderId: Number(orderId) })
-      .then((r) => setPay(r.data))
-      .catch((e) => setError(e.message));
-  }, [orderId]);
+    let alive = true;
+    setPay(null);
+    setError('');
+    api.post('/payments/create', { orderId: Number(orderId), provider })
+      .then((r) => alive && setPay(r.data))
+      .catch((e) => {
+        if (!alive) return;
+        setError(e.message || 'Không thể tạo phiên thanh toán.');
+      });
+    return () => { alive = false; };
+  }, [orderId, provider]);
 
-  useSocketEvent('payment:success', (p) => {
-    if (String(p.orderId) === String(orderId)) goResult();
+  // Cách 1: server báo ngay qua Socket.IO khi webhook/IPN về
+  useSocketEvent('payment:success', (p) => { 
+    if (String(p.orderId) === String(orderId)) goResult(); 
   });
 
+  // Cách 2 (dự phòng): hỏi lại server mỗi 3 giây. Với MoMo, server tự hỏi MoMo nếu IPN chưa về.
   useEffect(() => {
     if (!pay) return undefined;
     const t = setInterval(async () => {
       try {
         const r = await api.get(`/payments/${orderId}/status`);
         if (r.data.status !== 'PENDING') goResult();
-      } catch {
-        /* ignore */
-      }
+      } catch { /* bỏ qua lỗi tạm thời */ }
     }, 3000);
     return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pay, orderId]);
 
   const left = useCountdown(pay?.expiresAt);
 
   const copyToClipboard = (text, field) => {
+    if (!text) return;
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(''), 2000);
   };
 
   const cancel = async () => {
-    try {
-      await api.post(`/orders/${orderId}/cancel`, {});
-    } catch {
-      /* ignore */
-    }
+    try { await api.post(`/orders/${orderId}/cancel`, {}); } catch { /* đơn có thể đã hết hạn */ }
     sessionStorage.removeItem('booking');
     navigate('/');
   };
 
-  if (error)
-    return (
-      <div className="max-w-lg mx-auto space-y-4 py-16 text-center">
-        <div className="error-box">
-          <AlertCircle className="h-4 w-4 text-red-400" />
-          <span>{error}</span>
-        </div>
-        <button className="btn-ghost" onClick={() => navigate('/')}>
-          Về trang chủ
-        </button>
-      </div>
-    );
-
-  if (!pay) return <Spinner label="Đang khởi tạo mã VietQR bảo mật..." />;
-
   return (
-    <div className="max-w-md mx-auto card p-6 sm:p-8 text-center space-y-5 bg-surface/90 border-white/10 shadow-2xl">
-      {/* Header */}
-      <div className="space-y-1">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-0.5 text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          <span>Cổng thanh toán tự động</span>
-        </div>
-        <h1 className="font-display font-black text-2xl text-white">Quét mã VietQR</h1>
-        <p className="text-xs text-slate-400">
-          Mở ứng dụng ngân hàng hoặc ví điện tử bất kỳ để quét mã
-        </p>
-      </div>
+    <div className="max-w-lg mx-auto space-y-6 py-6">
+      <div className="card p-6 md:p-8 space-y-6 border border-white/10 shadow-2xl relative overflow-hidden">
+        {/* Glow ambient background */}
+        <div className="absolute -top-24 -left-24 w-60 h-60 bg-accent/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-gold/15 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Countdown Timer */}
-      <div className="flex justify-center">
-        <CountdownTimer expiresAt={pay.expiresAt} label="Hết hạn sau" />
-      </div>
-
-      {/* QR Code Container with Scanner Frame */}
-      <div className="relative mx-auto w-fit rounded-3xl bg-white p-5 shadow-2xl border-2 border-white/20">
-        <div className="absolute top-2 left-2 h-4 w-4 border-t-2 border-l-2 border-accent" />
-        <div className="absolute top-2 right-2 h-4 w-4 border-t-2 border-r-2 border-accent" />
-        <div className="absolute bottom-2 left-2 h-4 w-4 border-b-2 border-l-2 border-accent" />
-        <div className="absolute bottom-2 right-2 h-4 w-4 border-b-2 border-r-2 border-accent" />
-        <QRCodeSVG value={pay.qrCode} size={230} />
-      </div>
-
-      {/* Amount Display */}
-      <div>
-        <div className="text-xs uppercase font-bold tracking-wider text-slate-400">Số tiền thanh toán</div>
-        <div className="font-mono text-3xl font-black text-amber-300 drop-shadow-sm mt-0.5">
-          {vnd(pay.amount)}
-        </div>
-      </div>
-
-      {/* Bank Details Table with One-Click Copy */}
-      <div className="rounded-2xl bg-surface2/60 border border-white/5 p-4 text-xs text-left space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400">Chủ tài khoản:</span>
-          <span className="font-bold text-slate-200">{pay.accountName}</span>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400">Số tài khoản:</span>
-          <div className="flex items-center gap-2">
-            <span className="font-mono font-bold text-white text-sm">{pay.accountNumber}</span>
-            <button
-              onClick={() => copyToClipboard(pay.accountNumber, 'acc')}
-              className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-              title="Sao chép số tài khoản"
-            >
-              {copiedField === 'acc' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-            </button>
+        {/* Header */}
+        <div className="text-center space-y-2 relative">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface2 border border-white/10 text-xs text-slate-300">
+            <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+            <span>Cổng thanh toán bảo mật</span>
           </div>
+          <h1 className="text-2xl font-bold font-display text-white">Thanh toán vé xem phim</h1>
+          <p className="text-sm text-slate-400">Chọn phương thức thanh toán thuận tiện nhất cho bạn</p>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400">Nội dung chuyển khoản:</span>
-          <div className="flex items-center gap-2">
-            <span className="font-mono font-bold text-accent text-sm">{pay.description}</span>
+        {/* Tabs chọn cổng */}
+        <div className="grid grid-cols-2 gap-2 p-1 bg-surface2/60 rounded-xl border border-white/5">
+          {PROVIDERS.map(({ id, label, icon: Icon }) => (
             <button
-              onClick={() => copyToClipboard(pay.description, 'desc')}
-              className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-              title="Sao chép nội dung"
+              key={id}
+              onClick={() => setProvider(id)}
+              className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs md:text-sm font-medium transition-all ${
+                provider === id
+                  ? 'bg-gradient-to-r from-accent to-accent-hover text-surface font-semibold shadow-md'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
             >
-              {copiedField === 'desc' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
             </button>
+          ))}
+        </div>
+
+        {/* Lỗi */}
+        {error && (
+          <div className="error-box flex flex-col gap-2 p-4 text-left">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+              <div className="text-sm text-red-200">
+                <p className="font-semibold">{error}</p>
+                {provider === 'PAYOS' && (
+                  <p className="text-xs text-red-300/80 mt-1">
+                    Chưa cài đặt cấu hình PayOS trong file .env. Bạn có thể bấm chuyển sang <strong>Ví MoMo (Test)</strong> để thử nghiệm ngay.
+                  </p>
+                )}
+              </div>
+            </div>
+            {provider === 'PAYOS' && (
+              <button
+                onClick={() => setProvider('MOMO')}
+                className="mt-1 self-start btn-ghost text-xs py-1.5 px-3 bg-red-500/20 border-red-500/30 text-white hover:bg-red-500/30"
+              >
+                Chuyển sang Ví MoMo
+              </button>
+            )}
           </div>
-        </div>
+        )}
+
+        {/* Loading */}
+        {!pay && !error && (
+          <div className="py-12 text-center">
+            <Spinner label="Đang tạo mã thanh toán và kết nối cổng..." />
+          </div>
+        )}
+
+        {/* Payment Details */}
+        {pay && (
+          <div className="text-center space-y-5">
+            {/* Countdown */}
+            <div className="flex justify-center">
+              <CountdownTimer expiresAt={pay.expiresAt} label="Thời gian giữ chỗ còn lại" />
+            </div>
+
+            {/* QR Code */}
+            {pay.qrCode && (
+              <div className="relative inline-block mx-auto">
+                <div className="rounded-2xl bg-white p-4 shadow-xl border-4 border-surface2">
+                  <QRCodeSVG value={pay.qrCode} size={210} level="M" />
+                </div>
+                <div className="mt-2 text-xs text-slate-400 flex items-center justify-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-gold" />
+                  <span>Quét mã bằng app {provider === 'MOMO' ? 'MoMo' : 'Ngân hàng / VietQR'}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Amount */}
+            <div className="space-y-1">
+              <div className="text-xs text-slate-400 font-medium">Số tiền cần thanh toán</div>
+              <div className="text-3xl font-extrabold font-mono text-gold tracking-tight">
+                {vnd(pay.amount)}
+              </div>
+            </div>
+
+            {/* Provider specific instructions */}
+            {provider === 'PAYOS' ? (
+              <div className="text-sm text-left rounded-xl bg-surface2/80 border border-white/5 p-4 space-y-3 font-mono">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <span className="text-xs text-slate-400 font-sans">Chủ tài khoản:</span>
+                  <span className="font-semibold text-slate-200">{pay.accountName}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <span className="text-xs text-slate-400 font-sans">Số tài khoản:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-accent">{pay.accountNumber}</span>
+                    <button
+                      onClick={() => copyToClipboard(pay.accountNumber, 'acc')}
+                      className="p-1 hover:text-white text-slate-400 transition"
+                      title="Sao chép số tài khoản"
+                    >
+                      {copiedField === 'acc' ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-sans">Nội dung chuyển khoản:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gold">{pay.description}</span>
+                    <button
+                      onClick={() => copyToClipboard(pay.description, 'desc')}
+                      className="p-1 hover:text-white text-slate-400 transition"
+                      title="Sao chép nội dung"
+                    >
+                      {copiedField === 'desc' ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-left rounded-xl bg-surface2/80 border border-white/5 p-4 space-y-2 text-slate-300">
+                <div className="flex items-center gap-2 text-pink-400 font-semibold text-xs uppercase tracking-wider">
+                  <Smartphone className="h-4 w-4" />
+                  <span>Hướng dẫn MoMo Sandbox</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {pay.qrCode 
+                    ? '1. Mở app MoMo Test trên điện thoại và quét mã QR ở trên.' 
+                    : '1. Bấm nút bên dưới để chuyển tiếp sang trang thanh toán MoMo.'}
+                </p>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  2. Hoặc bạn có thể bấm nút <strong>"Thanh toán qua MoMo"</strong> bên dưới để duyệt giao diện web của MoMo.
+                </p>
+                <div className="pt-1 text-[11px] text-slate-500 border-t border-white/5">
+                  Môi trường thử nghiệm: Hoàn toàn không trừ tiền thật.
+                </div>
+              </div>
+            )}
+
+            {/* Waiting indicator */}
+            <div className="flex items-center justify-center gap-2 text-xs text-slate-400 py-1">
+              <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+              <span>Hệ thống đang tự động lắng nghe kết quả thanh toán...</span>
+            </div>
+
+            {left === 0 && (
+              <div className="error-box text-xs">
+                Đơn hàng đã hết thời gian giữ chỗ. Nếu bạn đã chuyển khoản, hệ thống sẽ tự động hoàn tiền.
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <a
+                href={pay.checkoutUrl}
+                target="_blank"
+                rel="noreferrer"
+                className={`flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition shadow-lg ${
+                  provider === 'MOMO'
+                    ? 'bg-pink-600 hover:bg-pink-500 text-white shadow-pink-600/30'
+                    : 'btn-primary shadow-accent/20'
+                }`}
+              >
+                <span>{provider === 'MOMO' ? 'Thanh toán qua MoMo' : 'Mở trang thanh toán PayOS'}</span>
+                <ExternalLink className="h-4 w-4" />
+              </a>
+
+              <button 
+                onClick={cancel} 
+                className="btn-ghost flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 text-sm text-slate-400 hover:text-white"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>Hủy thanh toán</span>
+              </button>
+            </div>
+
+            {provider === 'MOMO' && pay.deeplink && (
+              <a 
+                href={pay.deeplink}
+                className="btn-ghost w-full inline-flex items-center justify-center gap-2 text-sm sm:hidden"
+              >
+                <Smartphone className="h-4 w-4" />
+                <span>Mở bằng App MoMo</span>
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Realtime Detection Status */}
-      <div className="flex items-center justify-center gap-2 text-xs font-semibold text-slate-300 py-1">
-        <span className="h-2.5 w-2.5 rounded-full bg-accent animate-ping" />
-        <span>Hệ thống đang tự động nhận diện thanh toán...</span>
-      </div>
-
-      {left === 0 && (
-        <div className="error-box">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>Đơn hàng đã hết hạn. Nếu bạn vừa chuyển khoản, hệ thống sẽ đối soát tự động.</span>
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="flex gap-2.5 pt-2">
-        <a
-          className="btn-ghost flex-1 !py-2.5 text-xs flex items-center justify-center gap-1.5"
-          href={pay.checkoutUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          <span>Mở PayOS Web</span>
-        </a>
-
-        <button
-          className="btn-ghost flex-1 !py-2.5 text-xs text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/30 flex items-center justify-center gap-1.5"
-          onClick={cancel}
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          <span>Hủy đơn</span>
-        </button>
+      <div className="text-center">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Quay lại trang chủ</span>
+        </Link>
       </div>
     </div>
   );

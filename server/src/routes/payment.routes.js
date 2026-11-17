@@ -7,6 +7,7 @@ import * as tk from '../controllers/tickets.controller.js';
 const r = Router();
 r.post('/payments/create', requireAuth, validate(pay.createPaymentSchema), pay.createPayment);
 r.post('/payments/webhook', pay.handleWebhook); // PayOS gọi, không có JWT: bảo vệ bằng chữ ký
+r.post('/payments/momo/ipn', pay.handleMomoIpn); // MoMo gọi (IPN), không có JWT: bảo vệ bằng chữ ký
 r.get('/payments/:orderId/status', requireAuth, pay.paymentStatus);
 
 r.get('/tickets/me', requireAuth, tk.myTickets);
