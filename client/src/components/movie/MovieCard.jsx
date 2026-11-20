@@ -99,17 +99,19 @@ export default function MovieCard({ m }) {
           </div>
         </div>
 
-        <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-xs sm:text-sm">
-          <div>
-            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium block">Giá từ</span>
-            <span className="font-mono font-bold text-accent text-sm">
+        <div className="mt-3 pt-2.5 border-t border-white/[0.06]">
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium block leading-none mb-1.5">
+            Giá từ
+          </span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono font-bold text-accent text-sm leading-none">
               {m.minPrice != null ? vnd(m.minPrice) : 'Liên hệ'}
             </span>
-          </div>
 
-          <div className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-300 group-hover:text-accent transition-colors bg-white/[0.04] group-hover:bg-accent/10 px-2.5 py-1 rounded-lg border border-white/5 group-hover:border-accent/30">
-            <span>Chi tiết vé</span>
-            <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+            <div className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-300 group-hover:text-accent transition-colors bg-white/[0.04] group-hover:bg-accent/10 px-2.5 py-1 rounded-lg border border-white/5 group-hover:border-accent/30 shrink-0">
+              <span>Chi tiết vé</span>
+              <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+            </div>
           </div>
         </div>
       </div>
