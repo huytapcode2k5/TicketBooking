@@ -9,7 +9,10 @@ function loadScript(src) {
         scripts.set(src, new Promise((resolve, reject) => {
             const s = document.createElement('script');
             s.src = src; s.async = true; s.onload = resolve;
-            s.onerror = () => { scripts.delete(src); reject(new Error('Không tải được thư viện đăng nhập. Kiểm tra kết nối mạng hoặc trình chặn quảng cáo.')); };
+            s.onerror = () => {
+                scripts.delete(src);
+                reject(new Error('Script blocked'));
+            };
             document.body.appendChild(s);
         }));
     }
@@ -23,13 +26,16 @@ function loadFacebookSdk(appId, version) {
         fbReady = new Promise((resolve, reject) => {
             window.fbAsyncInit = () => {
                 try {
-                    window.FB.init({ appId, cookie: true, xfbml: false, version: version || 'v25.0' });
+                    window.FB.init({ appId, cookie: true, xfbml: false, version: version || 'v21.0' });
                     resolve();
                 } catch (err) {
                     reject(err);
                 }
             };
-            loadScript('https://connect.facebook.net/vi_VN/sdk.js').catch((e) => { fbReady = undefined; reject(e); });
+            loadScript('https://connect.facebook.net/vi_VN/sdk.js').catch((e) => {
+                fbReady = undefined;
+                reject(e);
+            });
         });
     }
     return fbReady;
@@ -38,7 +44,6 @@ function loadFacebookSdk(appId, version) {
 export default function SocialLogin({ onDone }) {
     const { loginWithGoogle, loginWithFacebook } = useAuth();
     const [cfg, setCfg] = useState(null);
-    const [fbOk, setFbOk] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const googleBtn = useRef(null);
@@ -48,18 +53,19 @@ export default function SocialLogin({ onDone }) {
     }, []);
 
     const finish = async (fn) => {
-        setError(''); setBusy(true);
+        setError('');
+        setBusy(true);
         try {
             await fn();
             if (onDone) onDone();
         } catch (e) {
-            setError(e.message);
+            setError(e.message || 'Đăng nhập không thành công.');
         } finally {
             setBusy(false);
         }
     };
 
-    // Google: Google tự vẽ nút; khi đăng nhập xong trả về "credential" (ID token) để gửi lên server kiểm tra
+    // Google: Google tự vẽ nút khi có clientId
     useEffect(() => {
         if (!cfg?.googleClientId) return undefined;
         let cancelled = false;
@@ -77,27 +83,83 @@ export default function SocialLogin({ onDone }) {
                 locale: 'vi',
                 width: 320
             });
-        }).catch((e) => setError(e.message));
+        }).catch(() => {
+            // Trình chặn quảng cáo chặn script của Google, không hiện lỗi ngay để tránh làm phiền
+            console.warn('[Google] Không tải được Google Sign-In SDK (có thể do trình chặn quảng cáo).');
+        });
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [cfg]);
 
-    // Facebook: tải SDK trước để bấm nút là mở popup ngay (trình duyệt chặn popup nếu mở chậm)
+    // Facebook: Tải ngầm SDK trước nếu được
     useEffect(() => {
         if (!cfg?.facebookAppId) return;
-        loadFacebookSdk(cfg.facebookAppId, cfg.facebookVersion).then(() => setFbOk(true)).catch((e) => setError(e.message));
+        loadFacebookSdk(cfg.facebookAppId, cfg.facebookVersion)
+            .catch(() => {
+                // Tải ngầm thất bại (thường do ad-blocker), không hiện lỗi khi mới vào trang
+            });
     }, [cfg]);
 
     const facebookLogin = () => {
         setError('');
-        if (!window.FB) {
-            setError('Đang kết nối tới Facebook SDK... Vui lòng thử lại sau 2 giây.');
+        if (!cfg?.facebookAppId) {
+            setError('Chưa cấu hình Facebook App ID.');
             return;
         }
-        window.FB.login((resp) => {
-            if (!resp.authResponse) return setError('Bạn đã hủy đăng nhập Facebook.');
-            finish(() => loginWithFacebook(resp.authResponse.accessToken));
-        }, { scope: 'public_profile,email' });
+
+        // Cách 1: Nếu SDK đã tải được, ưu tiên dùng window.FB.login
+        if (window.FB) {
+            window.FB.login((resp) => {
+                if (!resp.authResponse) {
+                    setError('Bạn đã hủy đăng nhập Facebook.');
+                    return;
+                }
+                finish(() => loginWithFacebook(resp.authResponse.accessToken));
+            }, { scope: 'public_profile,email' });
+            return;
+        }
+
+        // Cách 2: Nếu SDK bị chặn bởi AdBlocker, dùng popup OAuth trực tiếp của Facebook
+        const redirectUri = window.location.origin;
+        const version = cfg.facebookVersion || 'v21.0';
+        const authUrl = `https://www.facebook.com/${version}/dialog/oauth?client_id=${encodeURIComponent(cfg.facebookAppId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=public_profile,email`;
+
+        const width = 600, height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        const popup = window.open(authUrl, 'facebook_oauth', `width=${width},height=${height},left=${left},top=${top}`);
+
+        if (!popup) {
+            setError('Trình duyệt đã chặn cửa sổ đăng nhập Facebook. Vui lòng cho phép popup hoặc tắt tiện ích chặn quảng cáo.');
+            return;
+        }
+
+        const timer = setInterval(() => {
+            try {
+                if (popup.closed) {
+                    clearInterval(timer);
+                    return;
+                }
+                const popupUrl = popup.location.href;
+                if (popupUrl && popupUrl.startsWith(window.location.origin)) {
+                    const hash = popup.location.hash || popup.location.search;
+                    const params = new URLSearchParams(hash.replace(/^[#?]/, ''));
+                    const token = params.get('access_token');
+                    const errReason = params.get('error_description') || params.get('error');
+
+                    popup.close();
+                    clearInterval(timer);
+
+                    if (token) {
+                        finish(() => loginWithFacebook(token));
+                    } else if (errReason) {
+                        setError(`Đăng nhập Facebook bị hủy hoặc lỗi: ${errReason}`);
+                    }
+                }
+            } catch {
+                // Bỏ qua lỗi CORS khi popup còn đang nằm ở domain facebook.com
+            }
+        }, 500);
     };
 
     if (!cfg || (!cfg.googleClientId && !cfg.facebookAppId)) return null;
@@ -127,7 +189,7 @@ export default function SocialLogin({ onDone }) {
                     <button
                         type="button"
                         onClick={facebookLogin}
-                        disabled={!fbOk || busy}
+                        disabled={busy}
                         className="btn relative overflow-hidden flex h-11 w-full max-w-[320px] items-center justify-center gap-2.5 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-sm font-bold text-white shadow-[0_0_20px_rgba(24,119,242,0.35)] transition-all hover:shadow-[0_0_25px_rgba(24,119,242,0.6)] active:scale-95 disabled:opacity-50"
                     >
                         <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">

@@ -33,7 +33,7 @@ export const env = {
   publicUrl: (process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 5000}`).replace(/\/$/, ''),
   // Đăng nhập mạng xã hội: ID công khai gửi cho client, App Secret của Facebook chỉ dùng ở server
   google: { clientId: process.env.GOOGLE_CLIENT_ID },
-  facebook: { appId: process.env.FACEBOOK_APP_ID, appSecret: process.env.FACEBOOK_APP_SECRET, graphVersion: process.env.FACEBOOK_GRAPH_VERSION || 'v25.0' },
+  facebook: { appId: process.env.FACEBOOK_APP_ID, appSecret: process.env.FACEBOOK_APP_SECRET, graphVersion: process.env.FACEBOOK_GRAPH_VERSION || 'v21.0' },
   momo: {
     partnerCode: process.env.MOMO_PARTNER_CODE,
     accessKey: process.env.MOMO_ACCESS_KEY,
