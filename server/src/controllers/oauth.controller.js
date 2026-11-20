@@ -44,19 +44,20 @@ async function findOrCreateUser(provider, profile) {
     if (!user) {
         // Nếu nhà cung cấp (đặc biệt là Facebook) không trả về email (do đăng ký bằng SĐT hoặc không cấp quyền email)
         // -> tự động tạo email đại diện duy nhất theo Provider ID để người dùng vẫn đăng nhập thành công
-        const userEmail = profile.email || `${provider === 'facebook' ? 'fb' : 'gg'}_${profile.providerId}@${provider}.tickethub.vn`;
-        const userName = profile.name || (profile.email ? profile.email.split('@')[0] : `Người dùng ${LABEL[provider]}`);
+        const userEmail = (profile.email || `${provider === 'facebook' ? 'fb' : 'gg'}_${profile.providerId}@${provider}.tickethub.vn`).slice(0, 255);
+        const userName = (profile.name || (profile.email ? profile.email.split('@')[0] : `Người dùng ${LABEL[provider]}`)).slice(0, 150);
+        const pid = String(profile.providerId).slice(0, 64);
 
         const [byFallback] = await query('SELECT * FROM Users WHERE Email = @Email', { Email: userEmail });
         if (byFallback) {
             [user] = await query(
                 `UPDATE Users SET ${col} = @Pid, AvatarUrl = COALESCE(AvatarUrl, @Avatar), UpdatedAt = SYSUTCDATETIME() OUTPUT INSERTED.* WHERE UserId = @UserId`,
-                { Pid: profile.providerId, Avatar: profile.picture, UserId: byFallback.userId },
+                { Pid: pid, Avatar: profile.picture, UserId: byFallback.userId },
             );
         } else {
             [user] = await query(
                 `INSERT INTO Users (Email, PasswordHash, FullName, AvatarUrl, ${col}) OUTPUT INSERTED.* VALUES (@Email, NULL, @Name, @Avatar, @Pid)`,
-                { Email: userEmail, Name: userName, Avatar: profile.picture, Pid: profile.providerId },
+                { Email: userEmail, Name: userName, Avatar: profile.picture, Pid: pid },
             );
         }
     }
