@@ -30,12 +30,12 @@ export default function MovieCard({ m }) {
         <img
           src={imgUrl(m.posterUrl)}
           alt={m.title}
-          className="h-full w-full object-cover transition-transform duration-500 will-change-transform group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-500 will-change-transform group-hover:scale-105 contrast-[1.03] brightness-[1.02]"
           loading="lazy"
         />
 
-        {/* Ambient top vignette & badges */}
-        <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-black/60 opacity-80 group-hover:opacity-60 transition-opacity" />
+        {/* Ambient subtle vignette - Giữ ảnh poster sắc nét, không bị đục */}
+        <div className="absolute inset-0 bg-gradient-to-t from-surface/80 via-transparent to-black/40 opacity-40 group-hover:opacity-20 transition-opacity" />
 
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5">
           <span

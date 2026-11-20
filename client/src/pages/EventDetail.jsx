@@ -75,14 +75,25 @@ export default function EventDetail() {
     <div className="space-y-10">
       {/* Movie Hero Presentation */}
       <section className="relative overflow-hidden rounded-3xl card p-6 sm:p-10 border-white/10 bg-surface/90 shadow-2xl">
-        <div className="grid md:grid-cols-[280px_1fr] gap-8 items-start">
+        {/* Ambient Movie Banner Glow Background */}
+        {movie.bannerUrl && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none -z-0 opacity-25">
+            <img
+              src={imgUrl(movie.bannerUrl)}
+              alt=""
+              className="w-full h-full object-cover blur-2xl scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/85 to-surface/50" />
+          </div>
+        )}
+        <div className="relative z-10 grid md:grid-cols-[280px_1fr] gap-8 items-start">
           {/* Poster with glow */}
           <div className="relative group mx-auto md:mx-0 w-full max-w-[280px]">
             <div className="absolute -inset-1.5 rounded-3xl bg-gradient-to-tr from-accent to-rose-600 opacity-30 blur-lg group-hover:opacity-60 transition duration-500" />
             <img
               src={imgUrl(movie.posterUrl)}
               alt={movie.title}
-              className="relative rounded-2xl w-full aspect-[2/3] object-cover shadow-2xl border border-white/10"
+              className="relative rounded-2xl w-full aspect-[2/3] object-cover shadow-2xl border border-white/10 contrast-[1.03] brightness-[1.02]"
             />
           </div>
 

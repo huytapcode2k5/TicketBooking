@@ -40,6 +40,53 @@ export const listMovies = asyncHandler(async (req, res) => {
   ok(res, { items, total, page: Math.floor(offset / limit) + 1, limit });
 });
 
+/** GET /api/movies/featured: Lấy phim tiêu điểm tuần dựa trên số lượng vé được đặt nhiều nhất */
+export const getFeaturedMovie = asyncHandler(async (req, res) => {
+  // Ưu tiên 1: Phim đang chiếu (NOW_SHOWING) có lượt đặt vé cao nhất (tuần gần nhất hoặc tổng)
+  let [featured] = await query(
+    `SELECT TOP 1 
+            m.MovieId, m.Title, m.Description, m.PosterUrl, m.BannerUrl, m.TrailerUrl, 
+            m.DurationMin, m.AgeRating, m.Status, m.ReleaseDate,
+            ${GENRES_SQL} AS Genres,
+            (SELECT MIN(sp.Price) FROM Showtimes st JOIN ShowtimePrices sp ON sp.ShowtimeId = st.ShowtimeId
+              WHERE st.MovieId = m.MovieId AND st.Status = 'SCHEDULED' AND st.StartTime > SYSUTCDATETIME()) AS MinPrice,
+            (SELECT AVG(CAST(Rating AS FLOAT)) FROM Reviews r WHERE r.MovieId = m.MovieId) AS AvgRating,
+            (SELECT COUNT(*) FROM Reviews r WHERE r.MovieId = m.MovieId) AS ReviewCount,
+            (SELECT COUNT(*) FROM vw_ShowtimeSummary v WHERE v.MovieId = m.MovieId AND v.Status = 'SCHEDULED' AND v.StartTime > SYSUTCDATETIME()
+               AND v.SoldSeats >= v.TotalSeats) AS SoldOutShowtimes,
+            (SELECT COUNT(*) FROM vw_ShowtimeSummary v WHERE v.MovieId = m.MovieId AND v.Status = 'SCHEDULED' AND v.StartTime > SYSUTCDATETIME()) AS UpcomingShowtimes,
+            (SELECT COUNT(t.TicketId) FROM Showtimes st JOIN Tickets t ON t.ShowtimeId = st.ShowtimeId
+              WHERE st.MovieId = m.MovieId AND t.Status <> 'CANCELLED' 
+                AND t.IssuedAt >= DATEADD(day, -7, SYSUTCDATETIME())) AS WeeklyBookedCount,
+            (SELECT COUNT(t.TicketId) FROM Showtimes st JOIN Tickets t ON t.ShowtimeId = st.ShowtimeId
+              WHERE st.MovieId = m.MovieId AND t.Status <> 'CANCELLED') AS TotalBookedCount
+     FROM Movies m
+     WHERE m.Status = 'NOW_SHOWING'
+     ORDER BY WeeklyBookedCount DESC, TotalBookedCount DESC, UpcomingShowtimes DESC, AvgRating DESC, m.ReleaseDate DESC, m.MovieId DESC`
+  );
+
+  // Ưu tiên 2: Fallback sang phim bất kỳ chưa bị ẩn
+  if (!featured) {
+    [featured] = await query(
+      `SELECT TOP 1 
+              m.MovieId, m.Title, m.Description, m.PosterUrl, m.BannerUrl, m.TrailerUrl, 
+              m.DurationMin, m.AgeRating, m.Status, m.ReleaseDate,
+              ${GENRES_SQL} AS Genres,
+              (SELECT MIN(sp.Price) FROM Showtimes st JOIN ShowtimePrices sp ON sp.ShowtimeId = st.ShowtimeId
+                WHERE st.MovieId = m.MovieId AND st.Status = 'SCHEDULED' AND st.StartTime > SYSUTCDATETIME()) AS MinPrice,
+              (SELECT AVG(CAST(Rating AS FLOAT)) FROM Reviews r WHERE r.MovieId = m.MovieId) AS AvgRating,
+              (SELECT COUNT(*) FROM Reviews r WHERE r.MovieId = m.MovieId) AS ReviewCount,
+              0 AS WeeklyBookedCount,
+              0 AS TotalBookedCount
+       FROM Movies m
+       WHERE m.Status <> 'HIDDEN' AND m.Status <> 'ENDED'
+       ORDER BY m.ReleaseDate DESC, m.MovieId DESC`
+    );
+  }
+
+  ok(res, featured || null);
+});
+
 export const getMovie = asyncHandler(async (req, res) => {
   const id = toId(req.params.id);
   const [movie] = await query(

@@ -45,7 +45,8 @@ export default function Home() {
   useEffect(() => {
     api.get('/genres').then((r) => setGenres(r.data)).catch(() => {});
     api.get('/cinemas').then((r) => setCinemas(r.data)).catch(() => {});
-    api.get('/movies?status=NOW_SHOWING&limit=1').then((r) => setFeatured(r.data.items[0] ?? null)).catch(() => {});
+    // Tự động lấy phim/sự kiện tiêu điểm tuần được đặt nhiều vé nhất
+    api.get('/movies/featured').then((r) => setFeatured(r.data)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -79,23 +80,32 @@ export default function Home() {
       {/* Cinematic Hero Spotlight */}
       {featured && !q && (
         <section className="relative overflow-hidden rounded-3xl min-h-[380px] sm:min-h-[440px] flex items-end border border-white/10 shadow-2xl bg-surface group">
-          {/* Background Poster/Banner */}
+          {/* Background Poster/Banner - HD Sharp Rendering */}
           <img
             src={imgUrl(featured.bannerUrl || featured.posterUrl)}
             alt={featured.title}
-            className="absolute inset-0 h-full w-full object-cover object-center scale-100 group-hover:scale-105 transition-transform duration-700 opacity-45"
+            className="absolute inset-0 h-full w-full object-cover object-center scale-100 group-hover:scale-105 transition-transform duration-700 opacity-80 brightness-[1.05] contrast-[1.05]"
           />
 
-          {/* Vignette Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/75 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/60 to-transparent" />
+          {/* Vignette Gradients - Giữ sáng rõ nét ảnh, chỉ làm mờ nhẹ phần chữ */}
+          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/40 to-transparent" />
 
           {/* Hero Content */}
           <div className="relative p-6 sm:p-12 max-w-3xl space-y-4">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-accent to-rose-600 px-3 py-1 text-xs font-bold text-white shadow-glow-sm">
-                <Sparkles className="h-3 w-3" />
-                <span>Tiêu điểm tuần này</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-accent to-rose-600 px-3.5 py-1 text-xs font-bold text-white shadow-glow-sm">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Tiêu điểm tuần</span>
+                {featured.weeklyBookedCount > 0 ? (
+                  <span className="ml-1 pl-1.5 border-l border-white/30 text-amber-200">
+                    🔥 {featured.weeklyBookedCount} vé tuần này
+                  </span>
+                ) : featured.totalBookedCount > 0 ? (
+                  <span className="ml-1 pl-1.5 border-l border-white/30 text-amber-200">
+                    🔥 {featured.totalBookedCount} vé đã đặt
+                  </span>
+                ) : null}
               </span>
 
               {featured.ageRating && (

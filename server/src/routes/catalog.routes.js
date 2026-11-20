@@ -5,6 +5,7 @@ import * as c from '../controllers/catalog.controller.js';
 
 const r = Router();
 r.get('/movies', c.listMovies);
+r.get('/movies/featured', c.getFeaturedMovie);
 r.get('/movies/:id', c.getMovie);
 r.get('/movies/:id/showtimes', c.movieShowtimes);
 r.get('/movies/:id/reviews', c.listReviews);

@@ -19,6 +19,12 @@
     transition: color 0.2s ease;
   }
 
+  /* Crisp Image Rendering */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    content-visibility: auto;
+  }
+
   /* Custom Modern Dark Scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
