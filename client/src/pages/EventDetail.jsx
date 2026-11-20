@@ -205,10 +205,10 @@ export default function EventDetail() {
                 return (
                   <button
                     key={d}
-                    className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap flex flex-col items-center select-none ${
+                    className={`btn !py-2.5 !px-4 text-xs sm:text-sm font-bold flex flex-col items-center select-none whitespace-nowrap ${
                       active
-                        ? 'bg-gradient-to-r from-accent to-rose-600 text-white shadow-glow-sm'
-                        : 'bg-surface2/80 text-slate-300 hover:bg-white/[0.1] hover:text-white border border-white/5'
+                        ? 'btn-primary shadow-glow-sm'
+                        : 'btn-ghost border-white/5'
                     }`}
                     onClick={() => setDay(d)}
                   >

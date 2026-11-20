@@ -198,7 +198,7 @@ export default function Payment() {
                 href={pay.checkoutUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition shadow-lg bg-pink-600 hover:bg-pink-500 text-white shadow-pink-600/30"
+                className="btn-primary w-full !py-3.5 !px-4 text-sm font-bold !bg-gradient-to-r !from-[#A50064] !to-[#D82D8B] !border-pink-300/30 !shadow-[0_0_25px_rgba(216,45,139,0.5)] flex items-center justify-center gap-2"
               >
                 <span>Mở trang thanh toán MoMo Sandbox</span>
                 <ExternalLink className="h-4 w-4" />
@@ -208,16 +208,16 @@ export default function Payment() {
               <button
                 onClick={simulateSuccess}
                 disabled={simulating}
-                className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 transition"
+                className="btn w-full !py-3 !px-4 text-xs font-bold !bg-gradient-to-r !from-emerald-600 !to-teal-600 hover:!from-emerald-500 hover:!to-teal-500 text-white !border-emerald-300/30 !shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2"
                 title="Bấm để xác nhận đơn hàng thành công ngay lập tức mà không cần nhập thẻ"
               >
-                <Zap className="h-3.5 w-3.5 text-emerald-400 fill-emerald-400" />
+                <Zap className="h-3.5 w-3.5 text-amber-300 fill-amber-300" />
                 <span>{simulating ? 'Đang xác nhận...' : '⚡ Giả lập thanh toán thành công (Dành cho Dev / Demo)'}</span>
               </button>
 
               <button 
                 onClick={cancel} 
-                className="btn-ghost w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 text-xs text-slate-400 hover:text-white"
+                className="btn-ghost w-full flex items-center justify-center gap-2 !py-2.5 !px-4 text-xs text-slate-300 hover:text-white"
               >
                 <RotateCcw className="h-4 w-4" />
                 <span>Hủy thanh toán & nhả ghế</span>
@@ -238,7 +238,7 @@ export default function Payment() {
       </div>
 
       <div className="text-center">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition">
+        <Link to="/" className="btn-ghost !py-2 !px-4 text-xs text-slate-400 hover:text-white inline-flex items-center gap-1.5">
           <ArrowLeft className="h-3.5 w-3.5" />
           <span>Quay lại trang chủ</span>
         </Link>

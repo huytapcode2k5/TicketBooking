@@ -157,10 +157,10 @@ export default function Home() {
                 <button
                   key={label}
                   onClick={() => setStatus(val)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 select-none ${
+                  className={`btn text-xs sm:text-sm !py-2 !px-4 select-none ${
                     active
-                      ? 'bg-gradient-to-r from-accent to-rose-600 text-white shadow-glow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                      ? 'btn-primary shadow-glow-sm'
+                      : 'btn-ghost !border-transparent hover:!border-white/10 text-slate-300'
                   }`}
                 >
                   <Icon className={`h-4 w-4 ${active ? 'text-white' : 'text-slate-400'}`} />
