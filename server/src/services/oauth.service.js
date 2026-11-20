@@ -15,11 +15,50 @@ async function getJson(url) {
 }
 
 /**
- * Xác thực "credential" (ID token) mà nút Đăng nhập bằng Google trả về.
- * audience bắt buộc là Client ID của mình: token cấp cho app khác sẽ bị từ chối.
+ * Xác thực token đăng nhập Google:
+ * 1) Access Token (từ custom button bằng google.accounts.oauth2.initTokenClient)
+ * 2) ID Token JWT (từ Google One Tap hoặc Google Identity Services)
  */
 export async function verifyGoogleCredential(credential) {
     if (!env.google.clientId) throw new HttpError(503, 'Chưa cấu hình đăng nhập Google (GOOGLE_CLIENT_ID trong .env).');
+
+    // Trường hợp 1: Access Token (từ nút bấm tùy chỉnh)
+    if (credential.startsWith('ya29.')) {
+        let tokenInfo;
+        try {
+            const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(credential)}`, { signal: AbortSignal.timeout(10000) });
+            tokenInfo = await res.json();
+        } catch {
+            throw new HttpError(502, 'Không kết nối được máy chủ xác thực Google.');
+        }
+
+        if (tokenInfo?.error || (tokenInfo?.aud !== env.google.clientId && tokenInfo?.azp !== env.google.clientId)) {
+            throw new HttpError(401, 'Mã đăng nhập Google không hợp lệ hoặc đã hết hạn.');
+        }
+
+        let userInfo;
+        try {
+            const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${credential}` },
+                signal: AbortSignal.timeout(10000),
+            });
+            userInfo = await res.json();
+        } catch {
+            throw new HttpError(502, 'Không kết nối được dịch vụ thông tin người dùng Google.');
+        }
+
+        if (!userInfo?.sub) throw new HttpError(401, 'Không lấy được thông tin tài khoản Google.');
+
+        return {
+            providerId: String(userInfo.sub),
+            email: userInfo.email ? userInfo.email.toLowerCase() : null,
+            emailVerified: userInfo.email_verified === true || userInfo.email_verified === 'true',
+            name: userInfo.name || null,
+            picture: userInfo.picture ?? null,
+        };
+    }
+
+    // Trường hợp 2: ID Token JWT
     let payload;
     try {
         const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: env.google.clientId });
@@ -29,7 +68,7 @@ export async function verifyGoogleCredential(credential) {
     }
     if (!payload?.sub) throw new HttpError(401, 'Mã đăng nhập Google không hợp lệ.');
     return {
-        providerId: payload.sub,
+        providerId: String(payload.sub),
         email: payload.email ? payload.email.toLowerCase() : null,
         emailVerified: payload.email_verified === true,
         name: payload.name || null,
