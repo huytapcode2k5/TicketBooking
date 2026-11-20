@@ -24,8 +24,16 @@ export const env = {
     encrypt: bool(process.env.DB_ENCRYPT, false),
     trustCert: bool(process.env.DB_TRUST_CERT, true),
   },
-  // URL công khai của server (Cloudflare Tunnel / ngrok) để cổng thanh toán gọi IPN về
+  payos: {
+    clientId: process.env.PAYOS_CLIENT_ID,
+    apiKey: process.env.PAYOS_API_KEY,
+    checksumKey: process.env.PAYOS_CHECKSUM_KEY,
+  },
+  // URL công khai của server (Cloudflare Tunnel / ngrok) để cổng thanh toán gọi IPN/webhook về
   publicUrl: (process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 5000}`).replace(/\/$/, ''),
+  // Đăng nhập mạng xã hội: ID công khai gửi cho client, App Secret của Facebook chỉ dùng ở server
+  google: { clientId: process.env.GOOGLE_CLIENT_ID },
+  facebook: { appId: process.env.FACEBOOK_APP_ID, appSecret: process.env.FACEBOOK_APP_SECRET, graphVersion: process.env.FACEBOOK_GRAPH_VERSION || 'v25.0' },
   momo: {
     partnerCode: process.env.MOMO_PARTNER_CODE,
     accessKey: process.env.MOMO_ACCESS_KEY,

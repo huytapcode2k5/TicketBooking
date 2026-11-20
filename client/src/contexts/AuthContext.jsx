@@ -34,7 +34,9 @@ export function AuthProvider({ children }) {
   };
   const login = async (email, password) => saveSession((await api.post('/auth/login', { email, password })).data);
   const register = async (form) => saveSession((await api.post('/auth/register', form)).data);
+  const loginWithGoogle = async (credential) => saveSession((await api.post('/auth/google', { credential })).data);
+  const loginWithFacebook = async (accessToken) => saveSession((await api.post('/auth/facebook', { accessToken })).data);
 
-  const value = useMemo(() => ({ user, loading, login, register, logout, setUser }), [user, loading, logout]);
+  const value = useMemo(() => ({ user, loading, login, register, loginWithGoogle, loginWithFacebook, logout, setUser }), [user, loading, logout]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

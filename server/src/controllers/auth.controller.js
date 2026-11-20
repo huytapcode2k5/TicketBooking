@@ -18,7 +18,7 @@ export const loginSchema = z.object({ email: z.string().email('Email không hợ
 export const forgotSchema = z.object({ email: z.string().email('Email không hợp lệ') });
 export const resetSchema = z.object({ token: z.string().min(10), password: z.string().min(6, 'Mật khẩu tối thiểu 6 ký tự') });
 
-const publicUser = (u) => ({ userId: u.userId, email: u.email, fullName: u.fullName, phone: u.phone, avatarUrl: u.avatarUrl, role: u.role });
+export const publicUser = (u) => ({ userId: u.userId, email: u.email, fullName: u.fullName, phone: u.phone, avatarUrl: u.avatarUrl, role: u.role, hasPassword: Boolean(u.passwordHash) });
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
 export const register = asyncHandler(async (req, res) => {
@@ -36,6 +36,8 @@ export const register = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const [user] = await query('SELECT * FROM Users WHERE Email = @Email', { Email: email });
+  // Tài khoản tạo bằng Google/Facebook chưa có mật khẩu
+  if (user && !user.passwordHash) throw new HttpError(400, 'Tài khoản này đăng nhập bằng Google hoặc Facebook. Hãy dùng nút đăng nhập tương ứng, hoặc bấm "Quên mật khẩu" để tạo mật khẩu.');
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) throw new HttpError(401, 'Email hoặc mật khẩu không đúng.');
   if (!user.isActive) throw new HttpError(403, 'Tài khoản đã bị khóa.');
   ok(res, { token: signToken(user), user: publicUser(user) }, 'Đăng nhập thành công');
@@ -92,6 +94,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
 export const changePassword = asyncHandler(async (req, res) => {
   const [user] = await query('SELECT PasswordHash FROM Users WHERE UserId = @UserId', { UserId: req.user.userId });
+  if (!user.passwordHash) throw new HttpError(400, 'Tài khoản đăng nhập bằng Google/Facebook chưa có mật khẩu. Hãy dùng "Quên mật khẩu" để tạo mật khẩu.');
   if (!(await bcrypt.compare(req.body.oldPassword, user.passwordHash))) throw new HttpError(400, 'Mật khẩu cũ không đúng.');
   await query('UPDATE Users SET PasswordHash = @Hash, UpdatedAt = SYSUTCDATETIME() WHERE UserId = @UserId', {
     Hash: await bcrypt.hash(req.body.newPassword, 10),
