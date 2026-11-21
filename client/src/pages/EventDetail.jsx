@@ -393,7 +393,13 @@ export default function EventDetail() {
                 <div className="flex items-center gap-2.5">
                   <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white text-xs font-bold uppercase overflow-hidden shrink-0">
                     {r.avatarUrl ? (
-                      <img src={imgUrl(r.avatarUrl)} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={imgUrl(r.avatarUrl)}
+                        alt=""
+                        referrerPolicy="no-referrer"
+                        className="h-full w-full object-cover"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
                     ) : (
                       r.fullName?.charAt(0) || 'U'
                     )}

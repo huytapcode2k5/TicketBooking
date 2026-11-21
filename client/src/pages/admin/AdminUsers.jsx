@@ -3,7 +3,7 @@ import { api } from '../../api/axios.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import Spinner from '../../components/common/Spinner.jsx';
 import { Badge, PageHeader, Notice } from '../../components/admin/AdminUI.jsx';
-import { fmtDateTime } from '../../utils/format.js';
+import { fmtDateTime, imgUrl } from '../../utils/format.js';
 
 const ROLES = { USER: 'Người dùng', STAFF: 'Nhân viên soát vé', ADMIN: 'Quản trị viên' };
 
@@ -38,7 +38,41 @@ export default function AdminUsers() {
                                 const self = u.userId === me.userId;
                                 return (
                                     <tr key={u.userId} className="border-t border-white/5">
-                                        <td className="py-2 font-medium">{u.fullName}{self && <span className="ml-2 text-xs text-slate-500">(bạn)</span>}</td>
+                                        <td className="py-2.5 font-medium">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white text-xs font-bold uppercase overflow-hidden shrink-0 border border-white/10 shadow-sm">
+                                                    {u.avatarUrl ? (
+                                                        <img
+                                                            src={imgUrl(u.avatarUrl)}
+                                                            alt=""
+                                                            referrerPolicy="no-referrer"
+                                                            className="h-full w-full object-cover"
+                                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                        />
+                                                    ) : (
+                                                        u.fullName?.charAt(0) || 'U'
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="truncate">{u.fullName}</span>
+                                                        {self && <span className="text-[11px] text-slate-500 font-normal shrink-0">(bạn)</span>}
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                        {u.googleId && (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 rounded">
+                                                                Google
+                                                            </span>
+                                                        )}
+                                                        {u.facebookId && (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.2 rounded">
+                                                                Facebook
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td>{u.email}</td><td>{u.phone ?? '—'}</td>
                                         <td>
                                             <select className="input !w-auto !py-1.5 text-xs" disabled={self} value={u.role}

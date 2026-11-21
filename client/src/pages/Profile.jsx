@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api/axios.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { imgUrl } from '../utils/format.js';
 import { 
   User, 
   Mail, 
@@ -52,9 +53,19 @@ export default function Profile() {
     <div className="max-w-xl mx-auto space-y-6">
       {/* Header with Avatar */}
       <div className="card p-6 sm:p-7 flex items-center gap-5 bg-surface/90 border-white/10 shadow-2xl">
-        <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-accent via-rose-500 to-amber-400 p-[2px] shadow-glow-sm">
-          <div className="h-full w-full bg-surface rounded-[14px] flex items-center justify-center font-display font-black text-2xl text-white uppercase">
-            {user.fullName?.charAt(0) || 'U'}
+        <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-accent via-rose-500 to-amber-400 p-[2px] shadow-glow-sm shrink-0 overflow-hidden">
+          <div className="h-full w-full bg-surface rounded-[14px] flex items-center justify-center font-display font-black text-2xl text-white uppercase overflow-hidden">
+            {user.avatarUrl ? (
+              <img
+                src={imgUrl(user.avatarUrl)}
+                alt={user.fullName}
+                referrerPolicy="no-referrer"
+                className="h-full w-full object-cover"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            ) : (
+              user.fullName?.charAt(0) || 'U'
+            )}
           </div>
         </div>
 

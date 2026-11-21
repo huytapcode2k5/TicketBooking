@@ -1,4 +1,6 @@
 import { NavLink, Outlet, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext.jsx';
+import { imgUrl } from '../utils/format.js';
 import { 
   Ticket, 
   LayoutDashboard, 
@@ -23,6 +25,8 @@ const links = [
 ];
 
 export default function AdminLayout() {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen flex bg-bg text-slate-100">
       {/* Admin Sidebar */}
@@ -65,8 +69,30 @@ export default function AdminLayout() {
           </nav>
         </div>
 
-        {/* Back to Client Storefront */}
-        <div className="pt-4 border-t border-white/10">
+        {/* User Info & Back to Client Storefront */}
+        <div className="pt-4 border-t border-white/10 space-y-3">
+          {user && (
+            <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/5">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white text-xs font-bold uppercase overflow-hidden shrink-0 border border-white/10">
+                {user.avatarUrl ? (
+                  <img
+                    src={imgUrl(user.avatarUrl)}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    className="h-full w-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                ) : (
+                  user.fullName?.charAt(0) || 'A'
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-white truncate">{user.fullName}</p>
+                <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
+              </div>
+            </div>
+          )}
+
           <Link
             to="/"
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"

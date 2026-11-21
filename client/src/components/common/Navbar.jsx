@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
+import { imgUrl } from '../../utils/format.js';
 import NotificationBell from './NotificationBell.jsx';
 import { 
   Ticket, 
@@ -117,10 +118,20 @@ export default function Navbar() {
               
               <Link
                 to="/profile"
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 transition-all text-sm font-medium text-slate-200"
+                className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 transition-all text-sm font-medium text-slate-200"
               >
-                <div className="h-6 w-6 rounded-lg bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white text-xs font-bold uppercase shadow-sm">
-                  {user.fullName?.charAt(0) || 'U'}
+                <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white text-xs font-bold uppercase shadow-sm overflow-hidden shrink-0 border border-white/20">
+                  {user.avatarUrl ? (
+                    <img
+                      src={imgUrl(user.avatarUrl)}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      className="h-full w-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : (
+                    user.fullName?.charAt(0) || 'U'
+                  )}
                 </div>
                 <span className="max-w-[120px] truncate">{user.fullName}</span>
               </Link>
@@ -217,8 +228,20 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-200 hover:bg-white/[0.08]"
               >
-                <UserIcon className="h-4 w-4 text-slate-400" />
-                <span>Hồ sơ cá nhân</span>
+                <div className="h-7 w-7 rounded-full overflow-hidden bg-white/10 flex items-center justify-center text-xs font-bold shrink-0 border border-white/10">
+                  {user.avatarUrl ? (
+                    <img
+                      src={imgUrl(user.avatarUrl)}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      className="h-full w-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : (
+                    user.fullName?.charAt(0) || 'U'
+                  )}
+                </div>
+                <span className="truncate">{user.fullName} (Hồ sơ)</span>
               </Link>
             )}
           </div>

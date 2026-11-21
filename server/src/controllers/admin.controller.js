@@ -147,7 +147,7 @@ export const cancelShowtime = asyncHandler(async (req, res) => {
 // ---------- Người dùng ----------
 export const listUsers = asyncHandler(async (req, res) =>
   ok(res, await query(
-    `SELECT UserId, Email, FullName, Phone, Role, IsActive, CreatedAt FROM Users
+    `SELECT UserId, Email, FullName, Phone, AvatarUrl, GoogleId, FacebookId, Role, IsActive, CreatedAt FROM Users
      WHERE @Q IS NULL OR Email LIKE '%' + @Q + '%' OR FullName COLLATE SQL_Latin1_General_CP1_CI_AI LIKE '%' + @Q + '%' ORDER BY UserId DESC`, { Q: req.query.q ? String(req.query.q).trim() : null })),
 );
 export const userSchema = z.object({ role: z.enum(['USER', 'STAFF', 'ADMIN']).optional(), isActive: z.boolean().optional() });
