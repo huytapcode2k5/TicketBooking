@@ -143,7 +143,8 @@ export const reviewSchema = z.object({ rating: z.number().int().min(1).max(5), c
 
 export const listReviews = asyncHandler(async (req, res) =>
   ok(res, await query(
-    `SELECT r.ReviewId, r.Rating, r.Comment, r.CreatedAt, u.FullName FROM Reviews r JOIN Users u ON u.UserId = r.UserId
+    `SELECT r.ReviewId, r.UserId, r.MovieId, r.Rating, r.Comment, r.CreatedAt, u.FullName, u.AvatarUrl 
+     FROM Reviews r JOIN Users u ON u.UserId = r.UserId
      WHERE r.MovieId = @Id ORDER BY r.CreatedAt DESC`, { Id: toId(req.params.id) })),
 );
 
@@ -153,6 +154,20 @@ export const saveReview = asyncHandler(async (req, res) => {
   const updated = await query('UPDATE Reviews SET Rating = @Rating, Comment = @Comment, CreatedAt = SYSUTCDATETIME() OUTPUT INSERTED.ReviewId WHERE UserId = @UserId AND MovieId = @MovieId', params);
   if (!updated.length) await query('INSERT INTO Reviews (UserId, MovieId, Rating, Comment) VALUES (@UserId, @MovieId, @Rating, @Comment)', params);
   ok(res, null, 'Đã lưu đánh giá', 201);
+});
+
+export const deleteReview = asyncHandler(async (req, res) => {
+  const reviewId = toId(req.params.reviewId || req.params.id, 'reviewId');
+  const [rev] = await query('SELECT ReviewId, UserId, MovieId FROM Reviews WHERE ReviewId = @ReviewId', { ReviewId: reviewId });
+  if (!rev) throw new HttpError(404, 'Không tìm thấy đánh giá.');
+
+  // Chỉ cho phép xóa nếu là quản trị viên (ADMIN) hoặc chính người đã viết đánh giá
+  if (req.user.role !== 'ADMIN' && req.user.userId !== rev.userId) {
+    throw new HttpError(403, 'Bạn không có quyền xóa đánh giá này.');
+  }
+
+  await query('DELETE FROM Reviews WHERE ReviewId = @ReviewId', { ReviewId: reviewId });
+  ok(res, null, 'Đã xóa đánh giá thành công.');
 });
 
 export const listFavorites = asyncHandler(async (req, res) =>

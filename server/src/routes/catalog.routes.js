@@ -10,6 +10,8 @@ r.get('/movies/:id', c.getMovie);
 r.get('/movies/:id/showtimes', c.movieShowtimes);
 r.get('/movies/:id/reviews', c.listReviews);
 r.post('/movies/:id/reviews', requireAuth, validate(c.reviewSchema), c.saveReview);
+r.delete('/movies/:id/reviews/:reviewId', requireAuth, c.deleteReview);
+r.delete('/reviews/:reviewId', requireAuth, c.deleteReview);
 r.get('/genres', c.listGenres);
 r.get('/cinemas', c.listCinemas);
 r.get('/showtimes/:id', c.getShowtime);

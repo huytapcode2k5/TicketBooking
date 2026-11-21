@@ -17,7 +17,8 @@ import {
   Sparkles,
   ChevronRight,
   Ticket,
-  ArrowDown
+  ArrowDown,
+  Trash2
 } from 'lucide-react';
 
 export default function EventDetail() {
@@ -31,6 +32,7 @@ export default function EventDetail() {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [msg, setMsg] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
 
   const loadReviews = () => api.get(`/movies/${id}/reviews`).then((r) => setReviews(r.data)).catch(() => {});
 
@@ -65,6 +67,21 @@ export default function EventDetail() {
       loadReviews();
     } catch (err) {
       setMsg(err.message);
+    }
+  };
+
+  const deleteReview = async (reviewId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa đánh giá này không?')) return;
+    setDeletingId(reviewId);
+    try {
+      await api.delete(`/movies/${id}/reviews/${reviewId}`);
+      setReviews((prev) => prev.filter((r) => r.reviewId !== reviewId));
+      // Tải lại thông tin phim để cập nhật lại số lượng đánh giá và điểm số trung bình
+      api.get(`/movies/${id}`).then((m) => setMovie(m.data)).catch(() => {});
+    } catch (err) {
+      alert(err.message || 'Không thể xóa đánh giá.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -372,27 +389,47 @@ export default function EventDetail() {
 
           {reviews.map((r) => (
             <div key={r.reviewId} className="rounded-xl bg-surface2/40 border border-white/5 p-4 space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white text-xs font-bold uppercase">
-                    {r.fullName?.charAt(0) || 'U'}
+                  <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white text-xs font-bold uppercase overflow-hidden shrink-0">
+                    {r.avatarUrl ? (
+                      <img src={imgUrl(r.avatarUrl)} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      r.fullName?.charAt(0) || 'U'
+                    )}
                   </div>
                   <span className="font-bold text-sm text-slate-200">{r.fullName}</span>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-3.5 w-3.5 ${
-                        i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-700'
-                      }`}
-                    />
-                  ))}
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-3.5 w-3.5 ${
+                          i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-700'
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Chức năng xóa đánh giá ở dưới số sao dành cho Admin (hoặc người viết đánh giá) */}
+                  {(user?.role === 'ADMIN' || (user && user.userId === r.userId)) && (
+                    <button
+                      type="button"
+                      onClick={() => deleteReview(r.reviewId)}
+                      disabled={deletingId === r.reviewId}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-400/90 hover:text-rose-300 hover:bg-rose-500/10 px-2 py-0.5 rounded transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                      title="Xóa đánh giá này"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      <span>{deletingId === r.reviewId ? 'Đang xóa...' : 'Xóa đánh giá'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {r.comment && <p className="text-xs sm:text-sm text-slate-300 leading-relaxed pl-9">{r.comment}</p>}
+              {r.comment && <p className="text-xs sm:text-sm text-slate-300 leading-relaxed pl-9 break-words">{r.comment}</p>}
 
               <div className="text-[10px] text-slate-500 pl-9">{fmtDateTime(r.createdAt)}</div>
             </div>
