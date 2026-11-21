@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { Ticket, User, Mail, Phone, Lock, ArrowRight, AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Ticket, User, Mail, Phone, Lock, Sparkles, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import SocialLogin from '../components/auth/SocialLogin.jsx';
 
 export default function Register() {
   const { register } = useAuth();
@@ -10,6 +11,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const submit = async (e) => {
@@ -39,7 +41,7 @@ export default function Register() {
               Ticket<span className="text-accent">Hub</span>
             </span>
           </Link>
-          <h1 className="font-display font-extrabold text-2xl text-white">Tạo tài khoản mới</h1>
+          <h1 className="font-display font-extrabold text-2xl text-white">Đăng ký tài khoản</h1>
           <p className="text-xs sm:text-sm text-slate-400">
             Trở thành thành viên để tích điểm và đặt vé siêu tốc
           </p>
@@ -133,6 +135,9 @@ export default function Register() {
             <Sparkles className="h-4 w-4" />
             <span>{loading ? 'Đang khởi tạo...' : 'Đăng ký tài khoản'}</span>
           </button>
+
+          {/* Social Login */}
+          <SocialLogin onDone={() => navigate('/', { replace: true })} />
 
           <p className="text-xs sm:text-sm text-slate-400 text-center pt-2">
             Đã có tài khoản?{' '}

@@ -16,7 +16,8 @@ import {
   Star, 
   ChevronDown,
   Clock,
-  Film
+  Film,
+  ArrowRight
 } from 'lucide-react';
 
 const STATUS_TABS = [
@@ -27,9 +28,9 @@ const STATUS_TABS = [
 const LIMIT = 12;
 
 export default function Home() {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const q = params.get('q') || '';
-  const [status, setStatus] = useState('NOW_SHOWING');
+  const [status, setStatus] = useState(params.get('status') || (q ? '' : 'NOW_SHOWING'));
   const [genreId, setGenreId] = useState('');
   const [cinemaId, setCinemaId] = useState('');
   const [genres, setGenres] = useState([]);
@@ -44,12 +45,17 @@ export default function Home() {
   useEffect(() => {
     api.get('/genres').then((r) => setGenres(r.data)).catch(() => {});
     api.get('/cinemas').then((r) => setCinemas(r.data)).catch(() => {});
-    api.get('/movies?status=NOW_SHOWING&limit=1').then((r) => setFeatured(r.data.items[0] ?? null)).catch(() => {});
+    // Tự động lấy phim/sự kiện tiêu điểm tuần được đặt nhiều vé nhất
+    api.get('/movies/featured').then((r) => setFeatured(r.data)).catch(() => {});
   }, []);
 
   useEffect(() => {
     setPage(1);
-  }, [q, status, genreId, cinemaId]);
+    // Khi có từ khóa tìm kiếm q và không chỉ định tab, mặc định hiển thị tất cả trạng thái để tìm thấy phim
+    if (q && !params.get('status')) {
+      setStatus('');
+    }
+  }, [q, params]);
 
   useEffect(() => {
     setLoading(true);
@@ -74,23 +80,32 @@ export default function Home() {
       {/* Cinematic Hero Spotlight */}
       {featured && !q && (
         <section className="relative overflow-hidden rounded-3xl min-h-[380px] sm:min-h-[440px] flex items-end border border-white/10 shadow-2xl bg-surface group">
-          {/* Background Poster/Banner */}
+          {/* Background Poster/Banner - HD Sharp Rendering */}
           <img
             src={imgUrl(featured.bannerUrl || featured.posterUrl)}
             alt={featured.title}
-            className="absolute inset-0 h-full w-full object-cover object-center scale-100 group-hover:scale-105 transition-transform duration-700 opacity-45"
+            className="absolute inset-0 h-full w-full object-cover object-center scale-100 group-hover:scale-105 transition-transform duration-700 opacity-80 brightness-[1.05] contrast-[1.05]"
           />
 
-          {/* Vignette Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/75 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/60 to-transparent" />
+          {/* Vignette Gradients - Giữ sáng rõ nét ảnh, chỉ làm mờ nhẹ phần chữ */}
+          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/40 to-transparent" />
 
           {/* Hero Content */}
           <div className="relative p-6 sm:p-12 max-w-3xl space-y-4">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-accent to-rose-600 px-3 py-1 text-xs font-bold text-white shadow-glow-sm">
-                <Sparkles className="h-3 w-3" />
-                <span>Tiêu điểm tuần này</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-accent to-rose-600 px-3.5 py-1 text-xs font-bold text-white shadow-glow-sm">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Tiêu điểm tuần</span>
+                {featured.weeklyBookedCount > 0 ? (
+                  <span className="ml-1 pl-1.5 border-l border-white/30 text-amber-200">
+                    🔥 {featured.weeklyBookedCount} vé tuần này
+                  </span>
+                ) : featured.totalBookedCount > 0 ? (
+                  <span className="ml-1 pl-1.5 border-l border-white/30 text-amber-200">
+                    🔥 {featured.totalBookedCount} vé đã đặt
+                  </span>
+                ) : null}
               </span>
 
               {featured.ageRating && (
@@ -115,19 +130,22 @@ export default function Home() {
               {featured.description || featured.genres || 'Trải nghiệm suất chiếu điện ảnh mãn nhãn với công nghệ âm thanh vòm sống động.'}
             </p>
 
-            <div className="pt-2 flex flex-wrap items-center gap-3">
+            <div className="pt-2 flex flex-wrap items-center gap-4">
               <Link
                 to={`/events/${featured.movieId}`}
-                className="btn-primary !px-6 !py-3 text-base shadow-glow flex items-center gap-2 group/btn"
+                className="relative overflow-hidden group/btn inline-flex items-center gap-3 px-7 py-3.5 rounded-2xl text-base font-extrabold text-white tracking-wide bg-gradient-to-r from-accent via-rose-600 to-amber-500 hover:from-rose-500 hover:via-accent hover:to-amber-400 shadow-[0_0_25px_rgba(255,69,100,0.5),0_4px_16px_rgba(0,0,0,0.4)] hover:shadow-[0_0_40px_rgba(255,69,100,0.8),0_6px_24px_rgba(0,0,0,0.5)] border border-white/25 ring-1 ring-white/10 active:scale-95 transition-all duration-300 before:absolute before:inset-0 before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent"
               >
-                <Ticket className="h-5 w-5 transition-transform group-hover/btn:rotate-12" />
+                <div className="h-7 w-7 rounded-lg bg-white/20 flex items-center justify-center shadow-inner group-hover/btn:rotate-12 group-hover/btn:scale-110 transition-transform duration-300">
+                  <Ticket className="h-4 w-4 text-white" />
+                </div>
                 <span>Đặt vé ngay</span>
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1.5" />
               </Link>
 
               {featured.minPrice != null && (
-                <div className="px-4 py-2.5 rounded-xl bg-white/[0.08] backdrop-blur-md border border-white/10 text-xs sm:text-sm">
-                  <span className="text-slate-400">Giá vé từ: </span>
-                  <span className="font-mono font-bold text-amber-300 text-sm sm:text-base">
+                <div className="px-4 py-3 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/15 text-xs sm:text-sm flex items-center gap-2">
+                  <span className="text-slate-400">Giá vé từ:</span>
+                  <span className="font-mono font-extrabold text-amber-300 text-sm sm:text-base">
                     {vnd(featured.minPrice)}
                   </span>
                 </div>
@@ -149,10 +167,10 @@ export default function Home() {
                 <button
                   key={label}
                   onClick={() => setStatus(val)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 select-none ${
+                  className={`btn text-xs sm:text-sm !py-2 !px-4 select-none ${
                     active
-                      ? 'bg-gradient-to-r from-accent to-rose-600 text-white shadow-glow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                      ? 'btn-primary shadow-glow-sm'
+                      : 'btn-ghost !border-transparent hover:!border-white/10 text-slate-300'
                   }`}
                 >
                   <Icon className={`h-4 w-4 ${active ? 'text-white' : 'text-slate-400'}`} />
@@ -206,11 +224,23 @@ export default function Home() {
 
         {/* Search status notification */}
         {q && (
-          <div className="flex items-center gap-2 text-sm text-slate-300 px-1">
-            <Search className="h-4 w-4 text-accent" />
-            <span>
-              Kết quả tìm kiếm cho: <b className="text-white font-bold">"{q}"</b> ({total} phim & sự kiện)
-            </span>
+          <div className="flex items-center justify-between gap-3 text-sm text-slate-300 px-4 py-2.5 rounded-xl bg-surface2/60 border border-white/5 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-accent shrink-0" />
+              <span>
+                Kết quả tìm kiếm cho: <b className="text-white font-bold">"{q}"</b> ({total} phim & sự kiện)
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                const next = new URLSearchParams(params);
+                next.delete('q');
+                setParams(next);
+              }}
+              className="text-xs text-accent hover:text-accent-hover underline cursor-pointer shrink-0"
+            >
+              Xóa tìm kiếm
+            </button>
           </div>
         )}
 

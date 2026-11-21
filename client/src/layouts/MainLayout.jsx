@@ -43,7 +43,7 @@ export default function MainLayout() {
                 </span>
               </Link>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-sm">
-                Nền tảng đặt vé xem phim & sự kiện trực tuyến hàng đầu. Trải nghiệm giữ chỗ thời gian thực, thanh toán tự động qua mã VietQR PayOS và nhận vé điện tử tức thì.
+                Nền tảng đặt vé xem phim & sự kiện trực tuyến hàng đầu. Trải nghiệm giữ chỗ thời gian thực, thanh toán tự động qua Ví MoMo và nhận vé điện tử tức thì.
               </p>
               <div className="flex items-center gap-3 pt-1">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-xs font-semibold text-emerald-400">
@@ -91,17 +91,14 @@ export default function MainLayout() {
                 Đối tác thanh toán
               </h4>
               <div className="flex flex-wrap gap-2 text-xs">
-                <span className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 font-bold text-slate-200">
-                  PayOS
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 font-bold text-emerald-400">
-                  VietQR
+                <span className="px-2.5 py-1 rounded-lg bg-pink-500/10 border border-pink-500/30 font-bold text-pink-400">
+                  Ví MoMo
                 </span>
                 <span className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 font-bold text-blue-400">
-                  Napas 247
+                  Thẻ ATM Nội Địa
                 </span>
-                <span className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 font-bold text-rose-400">
-                  MoMo / ZaloPay
+                <span className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 font-bold text-amber-400">
+                  Visa / Mastercard
                 </span>
               </div>
               <p className="mt-3 text-[11px] text-slate-400 leading-normal">

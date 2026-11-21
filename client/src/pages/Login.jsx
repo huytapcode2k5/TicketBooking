@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { Ticket, Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import SocialLogin from '../components/auth/SocialLogin.jsx';
 
 export default function Login() {
   const { login } = useAuth();
@@ -107,6 +108,9 @@ export default function Login() {
             <span>{loading ? 'Đang xác thực...' : 'Đăng nhập'}</span>
             <ArrowRight className="h-4 w-4" />
           </button>
+
+          {/* Social Login Section */}
+          <SocialLogin onDone={() => navigate(location.state?.from?.pathname || '/', { replace: true })} />
 
           {/* Register Prompt */}
           <div className="pt-2 text-center text-xs sm:text-sm text-slate-400">

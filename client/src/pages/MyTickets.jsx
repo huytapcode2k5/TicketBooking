@@ -61,10 +61,10 @@ export default function MyTickets() {
             return (
               <button
                 key={k}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`btn text-xs font-bold !py-1.5 !px-3.5 select-none ${
                   active
-                    ? 'bg-gradient-to-r from-accent to-rose-600 text-white shadow-glow-sm'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'btn-primary shadow-glow-sm'
+                    : 'btn-ghost !border-transparent hover:!border-white/10 text-slate-400'
                 }`}
                 onClick={() => setTab(k)}
               >

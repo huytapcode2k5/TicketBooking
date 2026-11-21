@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { imgUrl, vnd } from '../../utils/format.js';
-import { Star, Clock, Sparkles, ArrowRight } from 'lucide-react';
+import { Star, Clock, Sparkles, ArrowRight, Ticket } from 'lucide-react';
 
 export default function MovieCard({ m }) {
   const soldOut = m.upcomingShowtimes > 0 && m.soldOutShowtimes >= m.upcomingShowtimes;
@@ -30,12 +30,12 @@ export default function MovieCard({ m }) {
         <img
           src={imgUrl(m.posterUrl)}
           alt={m.title}
-          className="h-full w-full object-cover transition-transform duration-500 will-change-transform group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-500 will-change-transform group-hover:scale-105 contrast-[1.03] brightness-[1.02]"
           loading="lazy"
         />
 
-        {/* Ambient top vignette & badges */}
-        <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-black/60 opacity-80 group-hover:opacity-60 transition-opacity" />
+        {/* Ambient subtle vignette - Giữ ảnh poster sắc nét, không bị đục */}
+        <div className="absolute inset-0 bg-gradient-to-t from-surface/80 via-transparent to-black/40 opacity-40 group-hover:opacity-20 transition-opacity" />
 
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-1.5">
           <span
@@ -69,12 +69,15 @@ export default function MovieCard({ m }) {
           )}
         </div>
 
-        {/* Hover Quick Action */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <span className="btn-primary !py-2 !px-4 text-xs shadow-glow">
-            <span>Chi tiết & Đặt vé</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </span>
+        {/* Modern Cinematic Hover Quick Action Button */}
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/85 via-black/45 to-black/35 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 p-4">
+          <div className="transform scale-90 group-hover:scale-100 transition-transform duration-300 ease-out">
+            <span className="relative overflow-hidden inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black tracking-wide text-white uppercase bg-gradient-to-r from-accent via-rose-500 to-amber-400 shadow-[0_0_25px_rgba(255,69,100,0.65),0_4px_14px_rgba(0,0,0,0.5)] border border-white/30 ring-2 ring-white/15 before:absolute before:inset-0 before:-translate-x-full group-hover:before:translate-x-full before:transition-transform before:duration-700 before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent">
+              <Ticket className="h-3.5 w-3.5 text-white" />
+              <span>Chi tiết vé</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+            </span>
+          </div>
         </div>
       </div>
 
@@ -96,11 +99,20 @@ export default function MovieCard({ m }) {
           </div>
         </div>
 
-        <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-xs sm:text-sm">
-          <span className="text-[11px] text-slate-400 font-medium">Giá vé từ</span>
-          <span className="font-mono font-bold text-accent text-sm">
-            {m.minPrice != null ? vnd(m.minPrice) : 'Liên hệ'}
+        <div className="mt-3 pt-2.5 border-t border-white/[0.06]">
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-medium block leading-none mb-1.5">
+            Giá từ
           </span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono font-bold text-accent text-sm leading-none">
+              {m.minPrice != null ? vnd(m.minPrice) : 'Liên hệ'}
+            </span>
+
+            <div className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-300 group-hover:text-accent transition-colors bg-white/[0.04] group-hover:bg-accent/10 px-2.5 py-1 rounded-lg border border-white/5 group-hover:border-accent/30 shrink-0">
+              <span>Chi tiết vé</span>
+              <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </div>
         </div>
       </div>
     </Link>
