@@ -92,60 +92,58 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/40 to-transparent" />
 
           {/* Hero Content */}
-          <div className="relative p-6 sm:p-12 max-w-3xl space-y-4">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-accent to-rose-600 px-3.5 py-1 text-xs font-bold text-white shadow-glow-sm">
-                <Sparkles className="h-3.5 w-3.5" />
+          <div className="relative p-6 sm:p-10 max-w-2xl space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 backdrop-blur-md border border-white/15 px-2.5 py-1 text-xs font-medium text-white">
+                <Flame className="h-3.5 w-3.5 text-accent" />
                 <span>Tiêu điểm tuần</span>
                 {featured.weeklyBookedCount > 0 ? (
-                  <span className="ml-1 pl-1.5 border-l border-white/30 text-amber-200">
-                    🔥 {featured.weeklyBookedCount} vé tuần này
+                  <span className="text-slate-300">
+                    · {featured.weeklyBookedCount} vé tuần này
                   </span>
                 ) : featured.totalBookedCount > 0 ? (
-                  <span className="ml-1 pl-1.5 border-l border-white/30 text-amber-200">
-                    🔥 {featured.totalBookedCount} vé đã đặt
+                  <span className="text-slate-300">
+                    · {featured.totalBookedCount} vé đã đặt
                   </span>
                 ) : null}
               </span>
 
               {featured.ageRating && (
-                <span className="rounded-lg bg-black/60 backdrop-blur-md px-2.5 py-0.5 text-xs font-bold text-amber-300 border border-amber-400/30">
+                <span className="rounded-lg bg-black/60 backdrop-blur-md px-2 py-0.5 text-xs font-semibold text-slate-200 border border-white/10">
                   {featured.ageRating}
                 </span>
               )}
 
               {featured.durationMin && (
-                <span className="flex items-center gap-1 text-xs text-slate-300 bg-white/10 backdrop-blur-md px-2.5 py-0.5 rounded-lg border border-white/10">
+                <span className="flex items-center gap-1 text-xs text-slate-300 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-lg border border-white/10">
                   <Clock className="h-3 w-3 text-slate-400" />
                   <span>{featured.durationMin} phút</span>
                 </span>
               )}
             </div>
 
-            <h1 className="font-display font-black text-3xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-tight drop-shadow-md">
+            <h1 className="font-display font-black text-3xl sm:text-5xl text-white tracking-tight leading-tight">
               {featured.title}
             </h1>
 
-            <p className="text-sm sm:text-base text-slate-300 line-clamp-2 leading-relaxed max-w-2xl font-normal">
+            <p className="text-sm sm:text-base text-slate-300 line-clamp-2 leading-relaxed max-w-xl font-normal">
               {featured.description || featured.genres || 'Trải nghiệm suất chiếu điện ảnh mãn nhãn với công nghệ âm thanh vòm sống động.'}
             </p>
 
-            <div className="pt-2 flex flex-wrap items-center gap-4">
+            <div className="pt-2 flex flex-wrap items-center gap-3">
               <Link
                 to={`/events/${featured.movieId}`}
-                className="relative overflow-hidden group/btn inline-flex items-center gap-3 px-7 py-3.5 rounded-2xl text-base font-extrabold text-white tracking-wide bg-gradient-to-r from-accent via-rose-600 to-amber-500 hover:from-rose-500 hover:via-accent hover:to-amber-400 shadow-[0_0_25px_rgba(255,69,100,0.5),0_4px_16px_rgba(0,0,0,0.4)] hover:shadow-[0_0_40px_rgba(255,69,100,0.8),0_6px_24px_rgba(0,0,0,0.5)] border border-white/25 ring-1 ring-white/10 active:scale-95 transition-all duration-300 before:absolute before:inset-0 before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent"
+                className="btn-primary !px-6 !py-3 text-sm font-semibold inline-flex items-center gap-2.5 rounded-xl shadow-sm active:scale-[0.98]"
               >
-                <div className="h-7 w-7 rounded-lg bg-white/20 flex items-center justify-center shadow-inner group-hover/btn:rotate-12 group-hover/btn:scale-110 transition-transform duration-300">
-                  <Ticket className="h-4 w-4 text-white" />
-                </div>
+                <Ticket className="h-4 w-4" />
                 <span>Đặt vé ngay</span>
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1.5" />
+                <ArrowRight className="h-4 w-4 opacity-70" />
               </Link>
 
               {featured.minPrice != null && (
-                <div className="px-4 py-3 rounded-2xl bg-white/[0.08] backdrop-blur-md border border-white/15 text-xs sm:text-sm flex items-center gap-2">
-                  <span className="text-slate-400">Giá vé từ:</span>
-                  <span className="font-mono font-extrabold text-amber-300 text-sm sm:text-base">
+                <div className="px-3.5 py-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-xs sm:text-sm flex items-center gap-2 text-slate-300">
+                  <span>Giá từ</span>
+                  <span className="font-mono font-semibold text-white">
                     {vnd(featured.minPrice)}
                   </span>
                 </div>
@@ -158,22 +156,22 @@ export default function Home() {
       {/* Filter and Browse Section */}
       <section className="space-y-6">
         {/* Status Tabs & Cinema Selection Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-2 rounded-2xl bg-surface/80 border border-white/10 backdrop-blur-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 rounded-xl bg-surface2/50 border border-white/5">
           {/* Status Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1">
             {STATUS_TABS.map(({ val, label, icon: Icon }) => {
               const active = status === val;
               return (
                 <button
                   key={label}
                   onClick={() => setStatus(val)}
-                  className={`btn text-xs sm:text-sm !py-2 !px-4 select-none ${
+                  className={`flex items-center gap-2 text-xs sm:text-sm py-2 px-3.5 rounded-lg transition-colors select-none font-medium ${
                     active
-                      ? 'btn-primary shadow-glow-sm'
-                      : 'btn-ghost !border-transparent hover:!border-white/10 text-slate-300'
+                      ? 'bg-white/10 text-white border border-white/10 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${active ? 'text-white' : 'text-slate-400'}`} />
+                  <Icon className={`h-4 w-4 ${active ? 'text-accent' : 'text-slate-500'}`} />
                   <span>{label}</span>
                 </button>
               );
@@ -182,9 +180,9 @@ export default function Home() {
 
           {/* Cinema Filter Dropdown */}
           <div className="relative min-w-[200px]">
-            <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-accent pointer-events-none" />
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
             <select
-              className="input !pl-10 !py-2 text-xs sm:text-sm appearance-none cursor-pointer pr-10"
+              className="input !pl-9 !py-2 text-xs sm:text-sm appearance-none cursor-pointer pr-8 bg-surface/90 border-white/10 text-slate-200 rounded-lg"
               value={cinemaId}
               onChange={(e) => setCinemaId(e.target.value)}
             >
@@ -195,7 +193,7 @@ export default function Home() {
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
           </div>
         </div>
 
