@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { api } from '../../api/axios.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
@@ -29,7 +29,10 @@ import {
   Trash2, 
   Copy, 
   CheckCheck,
-  Radio
+  Radio,
+  CalendarCheck,
+  CalendarX,
+  Filter
 } from 'lucide-react';
 
 const RESULT_CONFIG = {
@@ -71,7 +74,7 @@ const RESULT_CONFIG = {
   },
   TOO_EARLY: { 
     label: 'CHƯA ĐẾN GIỜ SOÁT VÉ', 
-    subtitle: 'Cổng chỉ mở trước giờ chiếu 30 phút. Vui lòng hướng dẫn khách chờ thêm',
+    subtitle: 'Cổng chỉ mở trước giờ chiếu 60 phút. Vui lòng xem khung giờ soát vé bên dưới',
     color: 'border-amber-400/60 bg-amber-950/40 text-amber-300', 
     badge: 'bg-amber-400 text-slate-950 font-bold',
     glow: 'shadow-[0_0_35px_rgba(251,191,36,0.35)]',
@@ -80,13 +83,52 @@ const RESULT_CONFIG = {
   },
   EXPIRED: { 
     label: 'SUẤT CHIẾU ĐÃ KẾT THÚC', 
-    subtitle: 'Suất chiếu phim đã kết thúc hoặc quá giờ quy định',
+    subtitle: 'Suất chiếu phim đã kết thúc hoặc quá giờ soát vé quy định',
     color: 'border-rose-500/60 bg-rose-950/40 text-rose-300', 
     badge: 'bg-rose-500 text-white font-bold',
     glow: 'shadow-[0_0_35px_rgba(244,63,94,0.35)]',
     icon: AlertCircle,
     tone: 'error'
   },
+};
+
+// Format showtime range: "19:30 - 21:45 (23/11/2026)"
+const formatShowtimeRange = (startTime, endTime) => {
+  if (!startTime) return 'Không xác định';
+  const start = fmtTime(startTime);
+  const dateStr = new Date(startTime).toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+  if (endTime) {
+    const end = fmtTime(endTime);
+    return `${start} - ${end} (${dateStr})`;
+  }
+  return `${start} (${dateStr})`;
+};
+
+// Calculate check-in allowed window (opens 60 minutes prior to StartTime until EndTime)
+const getCheckInWindow = (startTime, endTime, checkInAllowedFrom) => {
+  if (!startTime) return null;
+  const startDate = new Date(startTime);
+  const openDate = checkInAllowedFrom 
+    ? new Date(checkInAllowedFrom) 
+    : new Date(startDate.getTime() - 60 * 60 * 1000);
+
+  const closeDate = endTime 
+    ? new Date(endTime) 
+    : new Date(startDate.getTime() + 150 * 60 * 1000);
+
+  return {
+    openTime: fmtTime(openDate),
+    closeTime: fmtTime(closeDate),
+    openDateStr: openDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+    fullText: `Từ ${fmtTime(openDate)} đến ${fmtTime(closeDate)}`,
+    note: 'Mở cửa trước giờ chiếu 60 phút',
+    isBeforeOpen: Date.now() < openDate.getTime(),
+    isAfterClose: Date.now() > closeDate.getTime(),
+  };
 };
 
 // Web Audio API feedback synthesizer
@@ -156,10 +198,11 @@ export default function CheckIn() {
   const [scanning, setScanning] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState('');
+  const [historyFilter, setHistoryFilter] = useState('ALL'); // ALL | SUCCESS | ALERT
 
   const scannerRef = useRef(null);
   const lastRef = useRef({ code: '', at: 0 });
@@ -229,14 +272,14 @@ export default function CheckIn() {
         return next;
       });
 
-      // Update history list
+      // Update history list with comprehensive ticket details
       setHistory((prev) => {
         const item = {
           ...data,
           code: cleanCode,
           time: new Date().toISOString(),
         };
-        const updated = [item, ...prev.filter((x) => x.code !== cleanCode || Date.now() - new Date(x.time).getTime() > 10000)].slice(0, 20);
+        const updated = [item, ...prev.filter((x) => x.code !== cleanCode || Date.now() - new Date(x.time).getTime() > 10000)].slice(0, 30);
         try { localStorage.setItem('tickethub_checkin_history', JSON.stringify(updated)); } catch {}
         return updated;
       });
@@ -365,10 +408,21 @@ export default function CheckIn() {
   const handleCopyCode = (code) => {
     if (!code) return;
     navigator.clipboard.writeText(code).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 2000);
     });
   };
+
+  // Filtered history list
+  const filteredHistory = useMemo(() => {
+    if (historyFilter === 'SUCCESS') {
+      return history.filter((h) => h.Result === 'SUCCESS');
+    }
+    if (historyFilter === 'ALERT') {
+      return history.filter((h) => h.Result !== 'SUCCESS');
+    }
+    return history;
+  }, [history, historyFilter]);
 
   // Clean up on unmount
   useEffect(() => {
@@ -381,6 +435,7 @@ export default function CheckIn() {
 
   const resMeta = result?.Result ? RESULT_CONFIG[result.Result] : null;
   const ResIcon = resMeta?.icon;
+  const activeWindow = result?.StartTime ? getCheckInWindow(result.StartTime, result.EndTime, result.CheckInAllowedFrom) : null;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
@@ -706,10 +761,10 @@ export default function CheckIn() {
           
           {/* RESULT DOSSIER CARD */}
           {result && resMeta ? (
-            <div className={`card border-2 ${resMeta.color} ${resMeta.glow} p-6 transition-all duration-300 relative overflow-hidden`}>
+            <div className={`card border-2 ${resMeta.color} ${resMeta.glow} p-5 sm:p-6 transition-all duration-300 relative overflow-hidden`}>
               
               {/* STATUS HERO BANNER */}
-              <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5 mb-5">
+              <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4 mb-4">
                 <div className="flex items-center gap-3.5">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${resMeta.badge}`}>
                     {ResIcon && <ResIcon className="w-8 h-8" />}
@@ -734,14 +789,57 @@ export default function CheckIn() {
                     title="Sao chép mã vé"
                     className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex items-center gap-1.5 shrink-0 transition-colors"
                   >
-                    {copied ? <CheckCheck className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                    <span className="hidden sm:inline font-mono">{copied ? 'Đã chép' : 'Sao chép'}</span>
+                    {copiedCode === result.TicketId ? <CheckCheck className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    <span className="hidden sm:inline font-mono">{copiedCode === result.TicketId ? 'Đã chép' : 'Sao chép'}</span>
                   </button>
                 )}
               </div>
 
-              {/* TICKET SPECS GRID */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* SPECIAL ADVICE BANNER DEPENDING ON STATUS */}
+              {result.Result === 'TOO_EARLY' && activeWindow && (
+                <div className="mb-4 p-4 rounded-xl bg-amber-950/80 border border-amber-500/50 text-amber-200 text-xs sm:text-sm space-y-1.5 shadow-lg">
+                  <div className="flex items-center gap-2 font-bold text-amber-300 uppercase tracking-wide">
+                    <Clock className="w-4 h-4 text-amber-400" />
+                    Chưa đến giờ mở cổng soát vé!
+                  </div>
+                  <div className="text-slate-300 text-xs leading-relaxed">
+                    Vé này thuộc suất chiếu lúc <strong className="text-white font-semibold">{formatShowtimeRange(result.StartTime, result.EndTime)}</strong>.
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs font-medium">
+                    👉 <strong>Khung giờ được phép quét vé:</strong> Từ <span className="font-bold text-amber-300">{activeWindow.openTime}</span> đến <span className="font-bold text-amber-300">{activeWindow.closeTime}</span> (mở trước giờ chiếu 60 phút). Vui lòng hướng dẫn khách chờ đến <strong className="text-white underline">{activeWindow.openTime}</strong>!
+                  </div>
+                </div>
+              )}
+
+              {result.Result === 'ALREADY_USED' && (
+                <div className="mb-4 p-3.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-200 text-xs sm:text-sm space-y-1 shadow-lg">
+                  <div className="flex items-center gap-2 font-bold text-rose-300 uppercase tracking-wide">
+                    <AlertCircle className="w-4 h-4 text-rose-400" />
+                    Cảnh báo: Vé đã được sử dụng qua cổng!
+                  </div>
+                  <div className="text-slate-300 text-xs leading-relaxed">
+                    Vé đã từng được soát vào lúc: <strong className="text-rose-300 font-mono font-bold">{result.CheckedInAt ? fmtDateTime(result.CheckedInAt) : 'Thời gian trước đó'}</strong>.
+                  </div>
+                  <div className="text-slate-400 text-[11px]">
+                    Vui lòng giữ khách lại và đối chiếu lại số ghế, thông tin tài khoản hoặc hóa đơn đặt vé của khách hàng.
+                  </div>
+                </div>
+              )}
+
+              {result.Result === 'EXPIRED' && (
+                <div className="mb-4 p-3.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-200 text-xs sm:text-sm space-y-1 shadow-lg">
+                  <div className="flex items-center gap-2 font-bold text-rose-300 uppercase tracking-wide">
+                    <CalendarX className="w-4 h-4 text-rose-400" />
+                    Suất chiếu đã kết thúc hoặc quá giờ quét!
+                  </div>
+                  <div className="text-slate-300 text-xs leading-relaxed">
+                    Suất chiếu diễn ra lúc: <strong className="text-white">{formatShowtimeRange(result.StartTime, result.EndTime)}</strong>. Cổng soát vé cho suất chiếu này đã hết hạn hiệu lực.
+                  </div>
+                </div>
+              )}
+
+              {/* TICKET SPECS GRID: FULL DETAILS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 
                 {/* MOVIE TITLE */}
                 <div className="col-span-1 sm:col-span-2 p-3.5 rounded-xl bg-slate-900/80 border border-white/5 flex items-center gap-3.5">
@@ -775,49 +873,75 @@ export default function CheckIn() {
                     <Armchair className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Số ghế</div>
+                    <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Vị trí ghế</div>
                     <div className="text-xl font-black text-amber-400 font-mono tracking-wider">
                       {result.SeatLabel || '--'}
                     </div>
                   </div>
                 </div>
 
-                {/* SHOWTIME */}
-                <div className="p-3.5 rounded-xl bg-slate-900/80 border border-white/5 flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+                {/* MOVIE SHOWTIME RANGE (GIỜ CHIẾU CỦA PHIM) */}
+                <div className="p-3.5 rounded-xl bg-slate-900/80 border border-white/5 flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0 mt-0.5">
                     <Clock className="w-5 h-5" />
                   </div>
-                  <div>
-                    <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Suất chiếu</div>
-                    <div className="text-sm font-bold text-white font-mono">
-                      {result.StartTime ? fmtDateTime(result.StartTime) : '--'}
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11px] text-purple-300 uppercase tracking-wider font-semibold flex items-center gap-1">
+                      Giờ chiếu của phim
+                    </div>
+                    <div className="text-sm font-bold text-white font-mono mt-0.5">
+                      {result.StartTime ? formatShowtimeRange(result.StartTime, result.EndTime) : '--'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Thời gian suất chiếu chính thức
                     </div>
                   </div>
                 </div>
 
-                {/* CHECKED AT */}
+                {/* CHECK-IN WINDOW (GIỜ ĐƯỢC PHÉP QUÉT VÉ) */}
+                <div className="p-3.5 rounded-xl bg-slate-900/80 border border-white/5 flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                    <CalendarCheck className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11px] text-emerald-300 uppercase tracking-wider font-semibold flex items-center gap-1">
+                      Giờ được phép quét vé
+                    </div>
+                    <div className="text-sm font-bold text-emerald-400 font-mono mt-0.5">
+                      {activeWindow ? activeWindow.fullText : '--'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Mở cổng trước giờ chiếu 60 phút
+                    </div>
+                  </div>
+                </div>
+
+                {/* SCAN AT TIMESTAMP */}
                 <div className="p-3.5 rounded-xl bg-slate-900/80 border border-white/5 flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
                     <History className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Thời điểm soát vé</div>
+                    <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Thời điểm quét vé</div>
                     <div className="text-sm font-bold text-slate-200 font-mono">
                       {result.CheckedInAt ? fmtDateTime(result.CheckedInAt) : fmtDateTime(new Date().toISOString())}
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* SPECIAL WARNING FOOTER IF ALREADY_USED */}
-              {result.Result === 'ALREADY_USED' && (
-                <div className="mt-4 p-3 rounded-xl bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>
-                    Vé đã từng được check-in vào lúc <strong className="font-mono">{result.CheckedInAt ? fmtDateTime(result.CheckedInAt) : 'trước đó'}</strong>. Vui lòng giữ khách lại để đối chiếu thông tin cá nhân.
-                  </span>
+                {/* TICKET ID */}
+                <div className="p-3.5 rounded-xl bg-slate-900/80 border border-white/5 flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+                    <QrCode className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Mã vé / ID</div>
+                    <div className="text-xs font-bold text-slate-300 font-mono truncate">
+                      {result.TicketId ? `TK-${result.TicketId}` : (result.code || '--')}
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           ) : (
             /* EMPTY STANDBY HERO CARD */
@@ -832,18 +956,20 @@ export default function CheckIn() {
                 Hướng mã QR trên vé điện tử của khách hàng vào camera, hoặc nhập mã vé / sử dụng máy đọc mã vạch USB để tiến hành xác thực.
               </p>
               <div className="flex flex-wrap justify-center gap-2 text-xs text-slate-500">
+                <span className="px-2.5 py-1 rounded-lg bg-slate-800/80 border border-white/5">Mở soát trước giờ chiếu 60p</span>
                 <span className="px-2.5 py-1 rounded-lg bg-slate-800/80 border border-white/5">Auto Debounce 2.5s</span>
                 <span className="px-2.5 py-1 rounded-lg bg-slate-800/80 border border-white/5">Âm thanh phản hồi</span>
-                <span className="px-2.5 py-1 rounded-lg bg-slate-800/80 border border-white/5">Ghi nhận tức thì</span>
               </div>
             </div>
           )}
 
           {/* =========================================================================
-              RECENT SHIFT HISTORY LOG
+              RECENT SHIFT HISTORY LOG: REDESIGNED WITH FULL TICKET DETAILS
               ========================================================================= */}
-          <div className="card p-4 sm:p-5 border-white/10 bg-slate-900/80 shadow-lg">
-            <div className="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-white/5">
+          <div className="card p-4 sm:p-5 border-white/10 bg-slate-900/80 shadow-lg space-y-4">
+            
+            {/* HISTORY HEADER & FILTER TABS */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-white/5">
               <div className="flex items-center gap-2">
                 <History className="w-4 h-4 text-rose-400" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
@@ -851,71 +977,155 @@ export default function CheckIn() {
                 </h3>
               </div>
 
-              {history.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHistory([]);
-                    localStorage.removeItem('tickethub_checkin_history');
-                  }}
-                  className="text-[11px] text-slate-400 hover:text-rose-400 flex items-center gap-1 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Xóa lịch sử
-                </button>
-              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Filter Tabs */}
+                <div className="inline-flex rounded-lg bg-slate-950 p-1 border border-slate-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setHistoryFilter('ALL')}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                      historyFilter === 'ALL'
+                        ? 'bg-slate-800 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Tất cả ({history.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryFilter('SUCCESS')}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                      historyFilter === 'SUCCESS'
+                        ? 'bg-emerald-500/20 text-emerald-300'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Hợp lệ ({history.filter((h) => h.Result === 'SUCCESS').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHistoryFilter('ALERT')}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                      historyFilter === 'ALERT'
+                        ? 'bg-rose-500/20 text-rose-300'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Cảnh báo ({history.filter((h) => h.Result !== 'SUCCESS').length})
+                  </button>
+                </div>
+
+                {history.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Xóa danh sách lịch sử ca trực hiện tại?')) {
+                        setHistory([]);
+                        localStorage.removeItem('tickethub_checkin_history');
+                      }
+                    }}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 text-xs transition-colors flex items-center gap-1"
+                    title="Xóa toàn bộ lịch sử"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            {history.length === 0 ? (
+            {/* HISTORY CARDS LIST */}
+            {filteredHistory.length === 0 ? (
               <div className="py-8 text-center text-xs text-slate-500">
-                Chưa có lượt quét nào trong phiên làm việc này.
+                Chưa có lượt quét nào trong bộ lọc này.
               </div>
             ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                {history.map((h, i) => {
+              <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+                {filteredHistory.map((h, i) => {
                   const meta = RESULT_CONFIG[h.Result] || RESULT_CONFIG.INVALID;
                   const Icon = meta.icon;
+                  const itemWindow = h.StartTime ? getCheckInWindow(h.StartTime, h.EndTime, h.CheckInAllowedFrom) : null;
+                  const isCurrentSelected = result && (result.TicketId === h.TicketId || result.code === h.code);
+
                   return (
                     <div
                       key={h.code + i}
                       onClick={() => setResult(h)}
-                      className="p-3 rounded-xl bg-slate-950/60 hover:bg-slate-950 border border-white/5 hover:border-slate-700 transition-all flex items-center justify-between gap-3 cursor-pointer"
+                      className={`p-3.5 rounded-xl transition-all cursor-pointer border ${
+                        isCurrentSelected
+                          ? 'bg-slate-950 border-rose-500/50 shadow-md ring-1 ring-rose-500/30'
+                          : 'bg-slate-950/60 hover:bg-slate-950 border-white/5 hover:border-slate-700'
+                      }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${meta.badge}`}>
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-white truncate">
-                              {h.MovieTitle || 'Vé điện tử'}
-                            </span>
-                            {h.SeatLabel && (
-                              <span className="px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 font-mono text-[10px] font-bold">
-                                {h.SeatLabel}
-                              </span>
-                            )}
+                      {/* HEADER: MOVIE TITLE & STATUS BADGE */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${meta.badge}`}>
+                            <Icon className="w-4 h-4" />
                           </div>
-                          <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">
-                            Mã: {h.TicketId || h.code}
+                          <div className="min-w-0">
+                            <h4 className="text-xs sm:text-sm font-bold text-white truncate leading-tight">
+                              {h.MovieTitle || 'Vé điện tử TicketHub'}
+                            </h4>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              Mã vé: <span className="text-slate-300 font-semibold">{h.TicketId ? `TK-${h.TicketId}` : h.code}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${meta.badge}`}>
+                            {h.Result}
+                          </span>
+                          <div className="text-[10px] text-slate-400 font-mono mt-1">
+                            Quét lúc: <span className="text-slate-300 font-medium">{fmtTime(h.time)}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${meta.badge}`}>
-                          {h.Result}
-                        </span>
-                        <div className="text-[10px] text-slate-500 font-mono mt-1">
-                          {fmtTime(h.time)}
+                      {/* COMPREHENSIVE TICKET DETAILS: ROOM, SEAT, SHOWTIME, CHECK-IN WINDOW */}
+                      <div className="mt-2.5 pt-2.5 border-t border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        
+                        {/* ROOM & SEAT */}
+                        <div className="flex items-center gap-3 text-slate-300">
+                          <span className="flex items-center gap-1 text-slate-400 text-[11px]">
+                            <Building2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                            Phòng: <strong className="text-white">{h.RoomName || '--'}</strong>
+                          </span>
+                          <span className="flex items-center gap-1 text-[11px]">
+                            <Armchair className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            Ghế: <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono font-bold">{h.SeatLabel || '--'}</span>
+                          </span>
+                        </div>
+
+                        {/* MOVIE SHOWTIME RANGE */}
+                        <div className="flex items-center gap-1 text-slate-300 text-[11px] truncate">
+                          <Clock className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                          <span className="text-slate-400">Giờ chiếu:</span>
+                          <span className="font-mono text-purple-300 font-semibold truncate">
+                            {h.StartTime ? formatShowtimeRange(h.StartTime, h.EndTime) : '--'}
+                          </span>
+                        </div>
+
+                        {/* CHECK-IN ALLOWED WINDOW */}
+                        <div className="col-span-1 sm:col-span-2 flex items-center gap-1.5 text-[11px] bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-white/5">
+                          <CalendarCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span className="text-slate-400">Giờ mở quét:</span>
+                          <span className="font-mono text-emerald-400 font-semibold">
+                            {itemWindow ? itemWindow.fullText : 'Mở trước giờ chiếu 60p'}
+                          </span>
+                          <span className="text-[10px] text-slate-500 ml-auto hidden sm:inline">
+                            (Nhấp để xem lại hồ sơ)
+                          </span>
                         </div>
                       </div>
+
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
+
         </div>
 
       </div>
