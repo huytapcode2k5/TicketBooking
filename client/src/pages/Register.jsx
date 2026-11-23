@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { Ticket, User, Mail, Phone, Lock, Sparkles, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Ticket, User, Mail, Phone, Lock, AlertCircle, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import SocialLogin from '../components/auth/SocialLogin.jsx';
 
 export default function Register() {
