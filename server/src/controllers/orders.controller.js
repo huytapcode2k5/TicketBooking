@@ -53,6 +53,48 @@ export const getOrder = asyncHandler(async (req, res) => {
   ok(res, order);
 });
 
+/** Danh sách đơn hàng dành cho Admin: lọc theo trạng thái, tìm kiếm mã đơn / tên / email / phone */
+export const adminListOrders = asyncHandler(async (req, res) => {
+  const q = req.query.q ? String(req.query.q).trim() : '';
+  const status = req.query.status ? String(req.query.status).trim() : '';
+
+  let sql = `
+    SELECT o.OrderId, o.OrderCode, o.UserId, o.SubTotal, o.DiscountAmount, o.TotalAmount,
+           o.Status, o.CreatedAt, o.PaidAt, o.ExpiresAt,
+           u.FullName, u.Email, u.Phone,
+           (SELECT TOP 1 m.Title FROM OrderItems oi
+            JOIN Showtimes st ON st.ShowtimeId = oi.ShowtimeId
+            JOIN Movies m ON m.MovieId = st.MovieId
+            WHERE oi.OrderId = o.OrderId AND oi.ItemType = 'TICKET') AS MovieTitle,
+           (SELECT COUNT(*) FROM OrderItems oi WHERE oi.OrderId = o.OrderId AND oi.ItemType = 'TICKET') AS TicketCount,
+           (SELECT ISNULL(SUM(oi.Quantity), 0) FROM OrderItems oi WHERE oi.OrderId = o.OrderId AND oi.ItemType = 'COMBO') AS ComboCount
+    FROM Orders o
+    JOIN Users u ON u.UserId = o.UserId
+    WHERE 1=1
+  `;
+  const params = {};
+
+  if (status) {
+    sql += ` AND o.Status = @Status`;
+    params.Status = status;
+  }
+
+  if (q) {
+    sql += ` AND (
+      CAST(o.OrderCode AS VARCHAR(30)) LIKE @SearchPattern
+      OR u.FullName LIKE @SearchPattern
+      OR u.Email LIKE @SearchPattern
+      OR u.Phone LIKE @SearchPattern
+    )`;
+    params.SearchPattern = `%${q}%`;
+  }
+
+  sql += ` ORDER BY o.CreatedAt DESC`;
+
+  const rows = await query(sql, params);
+  ok(res, rows.map((o) => ({ ...o, orderCode: Number(o.orderCode) })));
+});
+
 /** Hủy đơn chưa thanh toán: nhả ghế. */
 export const cancelOrder = asyncHandler(async (req, res) => {
   const id = toId(req.params.id);

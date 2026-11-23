@@ -102,6 +102,7 @@ function startOfTodayVN() {
 export const statsSummary = asyncHandler(async (req, res) => {
   const [r] = await query(
     `SELECT
+       (SELECT ISNULL(SUM(TotalAmount), 0) FROM Orders WHERE Status = 'PAID') AS TotalRevenue,
        (SELECT ISNULL(SUM(TotalAmount), 0) FROM Orders WHERE Status = 'PAID' AND PaidAt >= @Today) AS RevenueToday,
        (SELECT COUNT(*) FROM Tickets WHERE Status IN ('VALID','USED') AND IssuedAt >= @Today) AS TicketsToday,
        (SELECT COUNT(*) FROM Orders WHERE Status = 'PENDING') AS PendingOrders,

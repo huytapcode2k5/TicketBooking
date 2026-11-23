@@ -5,7 +5,7 @@ import { ok, asyncHandler } from '../utils/response.js';
 import { env } from '../config/env.js';
 import { createMomoPayment, queryMomoPayment, verifyMomoIpn, orderCodeFromMomoOrderId } from '../services/momo.service.js';
 import { sendTicketEmail } from '../services/email.service.js';
-import { emitToUser } from '../sockets/payment.socket.js';
+import { emitToUser, emitToAdmin } from '../sockets/payment.socket.js';
 import { emitSeatRows } from '../sockets/seat.socket.js';
 
 export const createPaymentSchema = z.object({
@@ -35,6 +35,53 @@ async function confirmPayment({ orderCode, amount, providerRef, raw }) {
     emitSeatRows('seat:sold', seats);
     emitToUser(result.userId, 'payment:success', { orderId: result.orderId });
     emitToUser(result.userId, 'notification:new', {});
+
+    // Tạo thông báo và phát realtime đến trang Admin
+    try {
+      const [orderInfo] = await query(
+        `SELECT o.OrderCode, o.TotalAmount, u.FullName,
+                (SELECT TOP 1 m.Title FROM OrderItems oi
+                 JOIN Showtimes st ON st.ShowtimeId = oi.ShowtimeId
+                 JOIN Movies m ON m.MovieId = st.MovieId
+                 WHERE oi.OrderId = o.OrderId AND oi.ItemType = 'TICKET') AS MovieTitle,
+                (SELECT COUNT(*) FROM Tickets WHERE OrderId = o.OrderId) AS TicketCount
+         FROM Orders o
+         JOIN Users u ON u.UserId = o.UserId
+         WHERE o.OrderId = @Id`,
+        { Id: result.orderId },
+      );
+
+      if (orderInfo) {
+        const notifTitle = 'Khách đặt vé thành công';
+        const notifContent = `${orderInfo.fullName} vừa thanh toán đơn #${orderInfo.orderCode} (${orderInfo.ticketCount} vé "${orderInfo.movieTitle || 'Sự kiện'}"): ${Number(orderInfo.totalAmount).toLocaleString('vi-VN')} đ`;
+
+        // 1. Lưu thông báo cho tất cả Admin trong DB
+        const admins = await query("SELECT UserId FROM Users WHERE Role = 'ADMIN'");
+        for (const adm of admins) {
+          await query(
+            `INSERT INTO Notifications (UserId, Title, Content, IsRead, CreatedAt)
+             VALUES (@UserId, @Title, @Content, 0, SYSUTCDATETIME())`,
+            { UserId: adm.userId, Title: notifTitle, Content: notifContent },
+          ).catch(() => {});
+          emitToUser(adm.userId, 'notification:new', {});
+        }
+
+        // 2. Phát sự kiện popup realtime tới Admin trên trang admin
+        emitToAdmin('admin:order_success', {
+          orderId: result.orderId,
+          orderCode: Number(orderInfo.orderCode),
+          fullName: orderInfo.fullName,
+          movieTitle: orderInfo.movieTitle,
+          ticketCount: orderInfo.ticketCount,
+          totalAmount: orderInfo.totalAmount,
+          title: notifTitle,
+          content: notifContent,
+        });
+      }
+    } catch (err) {
+      // Bỏ qua lỗi thông báo để không ảnh hưởng thanh toán
+    }
+
     sendTicketEmail(result.orderId); // không await: không chặn phản hồi cho cổng thanh toán
   } else if (result.result !== 'ALREADY_PAID') {
     console.warn(`[payment] đơn ${orderCode}: ${result.result} (xem vw_PaymentsNeedReview)`);

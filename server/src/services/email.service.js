@@ -21,7 +21,7 @@ function getTransporter() {
 export async function sendMail({ to, subject, html, attachments }) {
   const t = getTransporter();
   if (!t) {
-    console.log(`[email:dev] To: ${to} | ${subject}\n${html.replace(/<[^>]+>/g, ' ').slice(0, 400)}`);
+    // Tắt in ra console terminal theo yêu cầu của người dùng
     return;
   }
   await t.sendMail({ from: env.smtp.from, to, subject, html, attachments });

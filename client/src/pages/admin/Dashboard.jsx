@@ -85,10 +85,16 @@ export default function Dashboard() {
 
   const statCards = [
     {
+      label: 'Tổng doanh thu',
+      value: vnd(d.s.totalRevenue ?? 0),
+      sub: 'Tích lũy toàn thời gian',
+      icon: DollarSign,
+    },
+    {
       label: 'Doanh thu hôm nay',
       value: vnd(d.s.revenueToday),
       sub: 'Đơn hàng đã thanh toán',
-      icon: DollarSign,
+      icon: TrendingUp,
     },
     {
       label: 'Vé bán ra hôm nay',
@@ -107,7 +113,7 @@ export default function Dashboard() {
       label: 'Tỷ lệ lấp đầy ghế',
       value: `${d.s.fillRate}%`,
       sub: 'Suất chiếu sắp tới',
-      icon: TrendingUp,
+      icon: Receipt,
     },
   ];
 
@@ -127,7 +133,7 @@ export default function Dashboard() {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {statCards.map(({ label, value, sub, icon: Icon, highlight }) => (
           <div
             key={label}
