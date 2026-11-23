@@ -56,7 +56,7 @@ export default function AdminCoupons() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-accent font-bold text-xs uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-accent font-semibold text-xs mb-1">
             <TicketPercent className="h-4 w-4" />
             <span>Bán hàng</span>
           </div>

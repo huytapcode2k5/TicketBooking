@@ -52,21 +52,19 @@ export default function Profile() {
   return (
     <div className="max-w-xl mx-auto space-y-6">
       {/* Header with Avatar */}
-      <div className="card p-6 sm:p-7 flex items-center gap-5 bg-surface/90 border-white/10 shadow-2xl">
-        <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-accent via-rose-500 to-amber-400 p-[2px] shadow-glow-sm shrink-0 overflow-hidden">
-          <div className="h-full w-full bg-surface rounded-[14px] flex items-center justify-center font-display font-black text-2xl text-white uppercase overflow-hidden">
-            {user.avatarUrl ? (
-              <img
-                src={imgUrl(user.avatarUrl)}
-                alt={user.fullName}
-                referrerPolicy="no-referrer"
-                className="h-full w-full object-cover"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-            ) : (
-              user.fullName?.charAt(0) || 'U'
-            )}
-          </div>
+      <div className="card p-6 sm:p-7 flex items-center gap-5 bg-surface/90 border-white/10 shadow-xl">
+        <div className="h-16 w-16 rounded-2xl bg-white/10 border border-white/10 shrink-0 overflow-hidden flex items-center justify-center font-display font-bold text-2xl text-white">
+          {user.avatarUrl ? (
+            <img
+              src={imgUrl(user.avatarUrl)}
+              alt={user.fullName}
+              referrerPolicy="no-referrer"
+              className="h-full w-full object-cover"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          ) : (
+            user.fullName?.charAt(0) || 'U'
+          )}
         </div>
 
         <div className="space-y-1">
@@ -140,7 +138,7 @@ export default function Profile() {
           </div>
         </div>
 
-        <button className="btn-primary !py-2.5 !px-5 text-xs sm:text-sm shadow-glow-sm flex items-center gap-2">
+        <button className="btn-primary !py-2.5 !px-5 text-xs sm:text-sm flex items-center gap-2">
           <Save className="h-4 w-4" />
           <span>Lưu thông tin</span>
         </button>

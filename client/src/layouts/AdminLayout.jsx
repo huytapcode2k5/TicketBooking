@@ -34,7 +34,7 @@ export default function AdminLayout() {
         <div className="space-y-6">
           {/* Admin Brand */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white shadow-glow-sm">
+            <div className="h-9 w-9 rounded-xl bg-accent flex items-center justify-center text-white shadow-sm">
               <Ticket className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
@@ -48,16 +48,16 @@ export default function AdminLayout() {
           </Link>
 
           {/* Navigation Items */}
-          <nav className="space-y-1.5">
+          <nav className="space-y-1">
             {links.map(({ to, label, icon: Icon, end }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={end}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold transition-all select-none ${
+                  `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium transition-all select-none ${
                     isActive
-                      ? 'bg-gradient-to-r from-accent to-rose-600 text-white shadow-glow-sm'
+                      ? 'bg-white/10 text-white font-semibold border border-white/10'
                       : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
                   }`
                 }
@@ -73,7 +73,7 @@ export default function AdminLayout() {
         <div className="pt-4 border-t border-white/10 space-y-3">
           {user && (
             <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/5">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white text-xs font-bold uppercase overflow-hidden shrink-0 border border-white/10">
+              <div className="h-8 w-8 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white text-xs font-semibold overflow-hidden shrink-0">
                 {user.avatarUrl ? (
                   <img
                     src={imgUrl(user.avatarUrl)}

@@ -9,7 +9,7 @@ export default function NotFound() {
           404
         </div>
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-16 w-16 rounded-3xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent shadow-glow">
+          <div className="h-16 w-16 rounded-3xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent shadow-sm">
             <Film className="h-8 w-8" />
           </div>
         </div>
@@ -26,7 +26,7 @@ export default function NotFound() {
 
       <Link
         to="/"
-        className="btn-primary !py-3 !px-6 text-sm shadow-glow flex items-center gap-2"
+        className="btn-primary !py-3 !px-6 text-sm flex items-center gap-2"
       >
         <Home className="h-4 w-4" />
         <span>Quay về trang chủ</span>

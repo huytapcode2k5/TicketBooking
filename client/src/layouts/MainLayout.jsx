@@ -16,10 +16,6 @@ import {
 export default function MainLayout() {
   return (
     <div className="min-h-screen flex flex-col relative bg-bg text-slate-100 overflow-x-hidden">
-      {/* Ambient Radial Background Mesh Glows */}
-      <div className="absolute top-0 left-1/4 -translate-x-1/2 w-[600px] h-[350px] bg-accent/10 rounded-full blur-[120px] pointer-events-none -z-10" />
-      <div className="absolute top-20 right-10 w-[500px] h-[350px] bg-violet-600/10 rounded-full blur-[140px] pointer-events-none -z-10" />
-
       {/* Main Navbar */}
       <Navbar />
 
@@ -28,14 +24,14 @@ export default function MainLayout() {
         <Outlet />
       </main>
 
-      {/* Enterprise-Grade Modern Footer */}
+      {/* Footer */}
       <footer className="mt-16 border-t border-white/[0.08] bg-surface/70 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-10 border-b border-white/[0.06]">
             {/* Brand column */}
             <div className="lg:col-span-2 space-y-4">
               <Link to="/" className="flex items-center gap-2.5">
-                <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white shadow-glow-sm">
+                <div className="h-9 w-9 rounded-xl bg-accent flex items-center justify-center text-white shadow-sm">
                   <Ticket className="h-5 w-5" />
                 </div>
                 <span className="font-display font-extrabold text-2xl tracking-tight text-white">
@@ -55,7 +51,7 @@ export default function MainLayout() {
 
             {/* Column 2: Quick Links */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+              <h4 className="text-xs font-semibold text-slate-300 mb-3">
                 Khám phá
               </h4>
               <ul className="space-y-2 text-xs sm:text-sm text-slate-400">
@@ -68,7 +64,7 @@ export default function MainLayout() {
 
             {/* Column 3: Customer Care */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+              <h4 className="text-xs font-semibold text-slate-300 mb-3">
                 Hỗ trợ khách hàng
               </h4>
               <ul className="space-y-2 text-xs sm:text-sm text-slate-400">
@@ -87,7 +83,7 @@ export default function MainLayout() {
 
             {/* Column 4: Payment Partners */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+              <h4 className="text-xs font-semibold text-slate-300 mb-3">
                 Đối tác thanh toán
               </h4>
               <div className="flex flex-wrap gap-2 text-xs">

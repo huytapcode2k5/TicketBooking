@@ -47,7 +47,7 @@ export default function MyTickets() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-accent font-bold text-xs uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-accent font-semibold text-xs mb-1">
             <Ticket className="h-4 w-4" />
             <span>Ví vé điện tử</span>
           </div>
@@ -61,9 +61,9 @@ export default function MyTickets() {
             return (
               <button
                 key={k}
-                className={`btn text-xs font-bold !py-1.5 !px-3.5 select-none ${
+                className={`btn text-xs font-semibold !py-1.5 !px-3.5 select-none ${
                   active
-                    ? 'btn-primary shadow-glow-sm'
+                    ? 'btn-primary'
                     : 'btn-ghost !border-transparent hover:!border-white/10 text-slate-400'
                 }`}
                 onClick={() => setTab(k)}
@@ -94,7 +94,7 @@ export default function MyTickets() {
             Khám phá các bộ phim bom tấn và sự kiện giải trí mới nhất để đặt chỗ ngay hôm nay.
           </p>
           <div className="pt-2">
-            <Link to="/" className="btn-primary !px-5 !py-2.5 text-xs sm:text-sm shadow-glow-sm inline-flex items-center gap-2">
+            <Link to="/" className="btn-primary !px-5 !py-2.5 text-xs sm:text-sm inline-flex items-center gap-2">
               <Compass className="h-4 w-4" />
               <span>Khám phá phim & sự kiện</span>
             </Link>

@@ -57,7 +57,7 @@ export default function TicketCard({ t, onRefund, canRefund }) {
             <div className="rounded-xl bg-surface2/60 border border-white/5 p-3 flex items-center gap-3">
               <Calendar className="h-5 w-5 text-accent" />
               <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400">Thời gian</div>
+                <div className="text-[11px] font-medium text-slate-400">Thời gian</div>
                 <div className="text-xs sm:text-sm font-bold text-white">{fmtDateTime(t.startTime)}</div>
               </div>
             </div>
@@ -65,7 +65,7 @@ export default function TicketCard({ t, onRefund, canRefund }) {
             <div className="rounded-xl bg-surface2/60 border border-white/5 p-3 flex items-center gap-3">
               <Armchair className="h-5 w-5 text-amber-400" />
               <div>
-                <div className="text-[10px] uppercase font-bold text-slate-400">Vị trí ghế</div>
+                <div className="text-[11px] font-medium text-slate-400">Vị trí ghế</div>
                 <div className="text-xs sm:text-sm font-bold text-white">
                   Ghế <span className="text-amber-300 font-mono text-base">{t.seatLabel}</span> ({SEAT_TYPE_LABEL[t.seatType] || 'Ghế'})
                 </div>
@@ -114,7 +114,7 @@ export default function TicketCard({ t, onRefund, canRefund }) {
         </div>
 
         <div className="text-center">
-          <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-slate-800 uppercase tracking-widest">
+          <div className="flex items-center justify-center gap-1 text-[11px] font-semibold text-slate-700 tracking-wide">
             <QrCode className="h-3 w-3 text-accent" />
             <span>Check-in QR</span>
           </div>

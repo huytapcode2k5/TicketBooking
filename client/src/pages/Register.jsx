@@ -34,7 +34,7 @@ export default function Register() {
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white shadow-glow-sm group-hover:scale-105 transition-transform">
+            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center text-white shadow-sm transition-transform">
               <Ticket className="h-5 w-5" />
             </div>
             <span className="font-display font-black text-2xl tracking-tight text-white">
@@ -129,11 +129,11 @@ export default function Register() {
           {/* Submit */}
           <button
             type="submit"
-            className="btn-primary w-full !py-3 text-base shadow-glow flex items-center justify-center gap-2 mt-2"
+            className="btn-primary w-full !py-3 text-base flex items-center justify-center gap-2 mt-2"
             disabled={loading}
           >
-            <Sparkles className="h-4 w-4" />
             <span>{loading ? 'Đang khởi tạo...' : 'Đăng ký tài khoản'}</span>
+            <ArrowRight className="h-4 w-4" />
           </button>
 
           {/* Social Login */}

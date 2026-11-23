@@ -105,16 +105,11 @@ export default function PaymentResult() {
 
   return (
     <div className="max-w-md mx-auto py-12 px-4">
-      <div className="card p-8 text-center space-y-6 border border-white/10 shadow-2xl relative overflow-hidden">
-        {/* Glow ambient background */}
-        <div className={`absolute -top-20 left-1/2 -translate-x-1/2 w-48 h-48 rounded-full blur-3xl pointer-events-none ${
-          status === 'PAID' ? 'bg-green-500/20' : status === 'PENDING' ? 'bg-amber-500/20' : 'bg-rose-500/20'
-        }`} />
-
+      <div className="card p-8 text-center space-y-6 border border-white/10 shadow-xl relative overflow-hidden">
         {/* Icon */}
         <div className="flex justify-center relative">
-          <div className={`p-4 rounded-2xl border ${current.bgColor} ${current.color} shadow-lg`}>
-            <IconComponent className={`h-14 w-14 ${status === 'PENDING' ? 'animate-pulse' : ''}`} />
+          <div className={`p-4 rounded-2xl border ${current.bgColor} ${current.color} shadow-sm`}>
+            <IconComponent className="h-14 w-14" />
           </div>
         </div>
 
@@ -132,7 +127,7 @@ export default function PaymentResult() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 relative">
           {status === 'PAID' ? (
             <Link 
-              className="btn-primary inline-flex items-center justify-center gap-2 py-3 px-6 text-sm font-semibold shadow-lg shadow-accent/20" 
+              className="btn-primary inline-flex items-center justify-center gap-2 py-3 px-6 text-sm font-semibold" 
               to="/my-tickets"
             >
               <Ticket className="h-4 w-4" />

@@ -29,7 +29,7 @@ export function ForgotPassword() {
         className="w-full max-w-md card p-6 sm:p-8 space-y-5 bg-surface/90 border-white/10 shadow-2xl"
       >
         <div className="text-center space-y-1">
-          <div className="h-12 w-12 rounded-2xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent mx-auto mb-2 shadow-glow-sm">
+          <div className="h-12 w-12 rounded-2xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent mx-auto mb-2">
             <KeyRound className="h-6 w-6" />
           </div>
           <h1 className="font-display font-black text-2xl text-white">Quên mật khẩu</h1>
@@ -68,10 +68,9 @@ export function ForgotPassword() {
         </div>
 
         <button
-          className="btn-primary w-full !py-3 text-sm shadow-glow flex items-center justify-center gap-2"
+          className="btn-primary w-full !py-3 text-sm flex items-center justify-center gap-2"
           disabled={loading}
         >
-          <Sparkles className="h-4 w-4" />
           <span>{loading ? 'Đang gửi...' : 'Gửi liên kết khôi phục'}</span>
         </button>
 
@@ -115,7 +114,7 @@ export function ResetPassword() {
         className="w-full max-w-md card p-6 sm:p-8 space-y-5 bg-surface/90 border-white/10 shadow-2xl"
       >
         <div className="text-center space-y-1">
-          <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto mb-2 shadow-glow-sm">
+          <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto mb-2">
             <Lock className="h-6 w-6" />
           </div>
           <h1 className="font-display font-black text-2xl text-white">Đặt lại mật khẩu</h1>
@@ -146,7 +145,7 @@ export function ResetPassword() {
         </div>
 
         <button
-          className="btn-primary w-full !py-3 text-sm shadow-glow flex items-center justify-center gap-2"
+          className="btn-primary w-full !py-3 text-sm flex items-center justify-center gap-2"
           disabled={loading}
         >
           <span>{loading ? 'Đang cập nhật...' : 'Cập nhật mật khẩu mới'}</span>

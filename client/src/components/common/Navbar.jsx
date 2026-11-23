@@ -42,7 +42,7 @@ export default function Navbar() {
   const navLinkClass = ({ isActive }) =>
     `inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
       isActive
-        ? 'bg-accent/15 text-accent border border-accent/30 shadow-glow-sm'
+        ? 'bg-accent/15 text-accent border border-accent/30'
         : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
     }`;
 
@@ -51,17 +51,14 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-18 flex items-center justify-between gap-4 py-3">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-accent via-rose-500 to-amber-400 p-[1px] shadow-glow-sm group-hover:shadow-glow transition-all duration-300 group-hover:scale-105">
-            <div className="h-full w-full bg-surface rounded-[11px] flex items-center justify-center">
-              <Ticket className="h-5 w-5 text-accent transition-transform group-hover:rotate-12 duration-300" />
-            </div>
+          <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center text-white shadow-sm transition-transform">
+            <Ticket className="h-5 w-5" />
           </div>
           <div className="flex flex-col">
-            <span className="font-display font-extrabold text-xl tracking-tight text-white flex items-center gap-1">
+            <span className="font-display font-black text-xl tracking-tight text-white">
               Ticket<span className="text-accent">Hub</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
             </span>
-            <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 -mt-1 hidden sm:block">
+            <span className="text-[11px] font-medium text-slate-400 -mt-1 hidden sm:block">
               Cinema & Events
             </span>
           </div>
@@ -120,7 +117,7 @@ export default function Navbar() {
                 to="/profile"
                 className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 transition-all text-sm font-medium text-slate-200"
               >
-                <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white text-xs font-bold uppercase shadow-sm overflow-hidden shrink-0 border border-white/20">
+                <div className="h-7 w-7 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white text-xs font-semibold overflow-hidden shrink-0">
                   {user.avatarUrl ? (
                     <img
                       src={imgUrl(user.avatarUrl)}
@@ -152,8 +149,7 @@ export default function Navbar() {
               <Link to="/login" className="btn-ghost !py-2 !px-3.5 text-xs sm:text-sm">
                 Đăng nhập
               </Link>
-              <Link to="/register" className="btn-primary !py-2 !px-4 text-xs sm:text-sm shadow-glow-sm">
-                <Sparkles className="h-3.5 w-3.5" />
+              <Link to="/register" className="btn-primary !py-2 !px-4 text-xs sm:text-sm">
                 <span>Đăng ký</span>
               </Link>
             </div>

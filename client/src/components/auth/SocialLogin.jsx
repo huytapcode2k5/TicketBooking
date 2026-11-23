@@ -229,7 +229,7 @@ export default function SocialLogin({ onDone }) {
 
     return (
         <div className="space-y-4 pt-1 w-full">
-            <div className="flex items-center gap-3 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+            <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
                 <span className="h-px flex-1 bg-white/10" />
                 <span>Hoặc tiếp tục với</span>
                 <span className="h-px flex-1 bg-white/10" />

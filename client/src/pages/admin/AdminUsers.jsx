@@ -40,7 +40,7 @@ export default function AdminUsers() {
                                     <tr key={u.userId} className="border-t border-white/5">
                                         <td className="py-2.5 font-medium">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white text-xs font-bold uppercase overflow-hidden shrink-0 border border-white/10 shadow-sm">
+                                                <div className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-semibold overflow-hidden shrink-0 border border-white/10">
                                                     {u.avatarUrl ? (
                                                         <img
                                                             src={imgUrl(u.avatarUrl)}

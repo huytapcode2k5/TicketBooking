@@ -57,25 +57,24 @@ export default function MovieCard({ m }) {
         {/* Status badges */}
         <div className="absolute bottom-2.5 left-2.5 flex flex-wrap gap-1">
           {m.status === 'COMING_SOON' && (
-            <span className="rounded-lg bg-amber-400/90 backdrop-blur-md text-slate-950 px-2 py-0.5 text-[11px] font-extrabold tracking-wide uppercase shadow-glow-gold flex items-center gap-1">
-              <Sparkles className="h-2.5 w-2.5" />
+            <span className="rounded-lg bg-amber-400/90 backdrop-blur-md text-slate-950 px-2 py-0.5 text-[11px] font-bold tracking-wide">
               <span>Sắp chiếu</span>
             </span>
           )}
           {soldOut && (
-            <span className="rounded-lg bg-red-600/90 backdrop-blur-md text-white px-2 py-0.5 text-[11px] font-extrabold tracking-wide uppercase shadow-sm">
+            <span className="rounded-lg bg-red-600/90 backdrop-blur-md text-white px-2 py-0.5 text-[11px] font-bold tracking-wide">
               Hết vé
             </span>
           )}
         </div>
 
-        {/* Modern Cinematic Hover Quick Action Button */}
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/85 via-black/45 to-black/35 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 p-4">
-          <div className="transform scale-90 group-hover:scale-100 transition-transform duration-300 ease-out">
-            <span className="relative overflow-hidden inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-black tracking-wide text-white uppercase bg-gradient-to-r from-accent via-rose-500 to-amber-400 shadow-[0_0_25px_rgba(255,69,100,0.65),0_4px_14px_rgba(0,0,0,0.5)] border border-white/30 ring-2 ring-white/15 before:absolute before:inset-0 before:-translate-x-full group-hover:before:translate-x-full before:transition-transform before:duration-700 before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent">
-              <Ticket className="h-3.5 w-3.5 text-white" />
-              <span>Chi tiết vé</span>
-              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+        {/* Hover Quick Action */}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-200 p-4">
+          <div className="transform scale-95 group-hover:scale-100 transition-transform duration-200 ease-out">
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-accent shadow-md border border-white/20">
+              <Ticket className="h-3.5 w-3.5" />
+              <span>Xem chi tiết</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
             </span>
           </div>
         </div>

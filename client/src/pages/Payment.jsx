@@ -90,10 +90,6 @@ export default function Payment() {
   return (
     <div className="max-w-lg mx-auto space-y-6 py-6 px-4">
       <div className="card p-6 md:p-8 space-y-6 border border-white/10 shadow-2xl relative overflow-hidden">
-        {/* Glow ambient background */}
-        <div className="absolute -top-24 -left-24 w-60 h-60 bg-pink-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-gold/15 rounded-full blur-3xl pointer-events-none" />
-
         {/* Header */}
         <div className="text-center space-y-2 relative">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface2 border border-white/10 text-xs text-slate-300">
@@ -136,7 +132,7 @@ export default function Payment() {
                   <QRCodeSVG value={pay.qrCode} size={210} level="M" />
                 </div>
                 <div className="mt-2 text-xs text-slate-400 flex items-center justify-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-pink-400" />
+                  <Smartphone className="h-3.5 w-3.5 text-pink-400" />
                   <span>Quét bằng app MoMo Test</span>
                 </div>
               </div>
@@ -152,7 +148,7 @@ export default function Payment() {
 
             {/* MoMo Sandbox instructions */}
             <div className="text-sm text-left rounded-xl bg-surface2/80 border border-white/5 p-4 space-y-3 text-slate-300">
-              <div className="flex items-center gap-2 text-pink-400 font-semibold text-xs uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-pink-400 font-semibold text-xs">
                 <Smartphone className="h-4 w-4" />
                 <span>Môi trường MoMo Sandbox (Thử nghiệm)</span>
               </div>
@@ -198,7 +194,7 @@ export default function Payment() {
                 href={pay.checkoutUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="btn-primary w-full !py-3.5 !px-4 text-sm font-bold !bg-gradient-to-r !from-[#A50064] !to-[#D82D8B] !border-pink-300/30 !shadow-[0_0_25px_rgba(216,45,139,0.5)] flex items-center justify-center gap-2"
+                className="w-full !py-3.5 !px-4 text-sm font-semibold rounded-xl bg-[#A50064] hover:bg-[#8e0056] text-white border border-pink-400/20 shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
               >
                 <span>Mở trang thanh toán MoMo Sandbox</span>
                 <ExternalLink className="h-4 w-4" />
@@ -208,11 +204,11 @@ export default function Payment() {
               <button
                 onClick={simulateSuccess}
                 disabled={simulating}
-                className="btn w-full !py-3 !px-4 text-xs font-bold !bg-gradient-to-r !from-emerald-600 !to-teal-600 hover:!from-emerald-500 hover:!to-teal-500 text-white !border-emerald-300/30 !shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2"
+                className="btn-secondary w-full !py-2.5 !px-4 text-xs font-medium border border-emerald-500/20 text-emerald-400 hover:text-emerald-300 flex items-center justify-center gap-2 transition-all"
                 title="Bấm để xác nhận đơn hàng thành công ngay lập tức mà không cần nhập thẻ"
               >
-                <Zap className="h-3.5 w-3.5 text-amber-300 fill-amber-300" />
-                <span>{simulating ? 'Đang xác nhận...' : '⚡ Giả lập thanh toán thành công (Dành cho Dev / Demo)'}</span>
+                <Zap className="h-3.5 w-3.5" />
+                <span>{simulating ? 'Đang xác nhận...' : 'Giả lập thanh toán thành công (Thử nghiệm)'}</span>
               </button>
 
               <button 

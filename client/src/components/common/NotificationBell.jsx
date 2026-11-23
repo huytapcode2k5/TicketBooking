@@ -39,8 +39,7 @@ export default function NotificationBell() {
       >
         <Bell className="h-4 w-4" />
         {data.unread > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white shadow-glow-sm">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-white">
             <span className="relative">{data.unread > 9 ? '9+' : data.unread}</span>
           </span>
         )}
@@ -75,7 +74,7 @@ export default function NotificationBell() {
                     n.isRead ? 'opacity-65' : 'bg-white/[0.02]'
                   }`}
                 >
-                  <div className={`mt-0.5 h-2 w-2 rounded-full flex-shrink-0 ${n.isRead ? 'bg-transparent' : 'bg-accent shadow-glow-sm'}`} />
+                  <div className={`mt-0.5 h-2 w-2 rounded-full flex-shrink-0 ${n.isRead ? 'bg-transparent' : 'bg-accent'}`} />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-bold text-slate-200 line-clamp-1">{n.title}</div>
                     <div className="text-xs text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">{n.content}</div>

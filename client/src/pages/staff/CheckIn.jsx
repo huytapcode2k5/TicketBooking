@@ -91,7 +91,7 @@ export default function CheckIn() {
     <div className="max-w-lg mx-auto space-y-6">
       {/* Title */}
       <div className="text-center space-y-1">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 border border-accent/30 px-3 py-0.5 text-xs font-bold text-accent uppercase tracking-wider mb-1">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 border border-accent/30 px-3 py-0.5 text-xs font-semibold text-accent mb-1">
           <QrCode className="h-3.5 w-3.5" />
           <span>Cổng kiểm soát vé</span>
         </div>
@@ -107,7 +107,7 @@ export default function CheckIn() {
         
         <button
           className={`w-full !py-3 flex items-center justify-center gap-2 font-bold text-sm ${
-            scanning ? 'btn-danger' : 'btn-primary shadow-glow'
+            scanning ? 'btn-danger' : 'btn-primary'
           }`}
           onClick={scanning ? stop : start}
         >
@@ -190,7 +190,7 @@ export default function CheckIn() {
         <div className="card p-5 bg-surface/90 border-white/10 space-y-3">
           <div className="flex items-center gap-2 border-b border-white/10 pb-2.5">
             <History className="h-4 w-4 text-slate-400" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <h2 className="text-xs font-semibold text-slate-400">
               Lịch sử quét gần đây
             </h2>
           </div>
