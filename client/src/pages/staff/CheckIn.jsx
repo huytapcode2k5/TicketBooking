@@ -31,8 +31,7 @@ import {
   CheckCheck,
   Radio,
   CalendarCheck,
-  CalendarX,
-  Filter
+  CalendarX
 } from 'lucide-react';
 
 const RESULT_CONFIG = {
@@ -92,9 +91,28 @@ const RESULT_CONFIG = {
   },
 };
 
+// Normalize response data: handles both camelCase (API) and PascalCase (DB)
+const normalizeTicketData = (raw) => {
+  if (!raw) return null;
+  const resKey = (raw.result || raw.Result || 'INVALID').toUpperCase();
+  return {
+    result: resKey,
+    ticketId: raw.ticketId ?? raw.TicketId ?? null,
+    movieTitle: raw.movieTitle || raw.MovieTitle || '',
+    roomName: raw.roomName || raw.RoomName || '',
+    seatLabel: raw.seatLabel || raw.SeatLabel || '',
+    startTime: raw.startTime || raw.StartTime || null,
+    endTime: raw.endTime || raw.EndTime || null,
+    checkInAllowedFrom: raw.checkInAllowedFrom || raw.CheckInAllowedFrom || null,
+    checkedInAt: raw.checkedInAt || raw.CheckedInAt || null,
+    code: raw.code || raw.qrToken || raw.QrToken || '',
+    time: raw.time || new Date().toISOString(),
+  };
+};
+
 // Format showtime range: "19:30 - 21:45 (23/11/2026)"
 const formatShowtimeRange = (startTime, endTime) => {
-  if (!startTime) return 'Không xác định';
+  if (!startTime) return 'Chưa có thông tin suất chiếu';
   const start = fmtTime(startTime);
   const dateStr = new Date(startTime).toLocaleDateString('vi-VN', {
     day: '2-digit',
@@ -179,7 +197,9 @@ export default function CheckIn() {
   const [history, setHistory] = useState(() => {
     try {
       const saved = localStorage.getItem('tickethub_checkin_history');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed.map(normalizeTicketData) : [];
     } catch {
       return [];
     }
@@ -252,17 +272,17 @@ export default function CheckIn() {
     try {
       setError('');
       const r = await api.post('/staff/checkin', { qrToken: cleanCode });
-      const data = r.data || {};
-      const resConfig = RESULT_CONFIG[data.Result] || RESULT_CONFIG.INVALID;
+      const normalized = normalizeTicketData({ ...r.data, code: cleanCode });
+      const resConfig = RESULT_CONFIG[normalized.result] || RESULT_CONFIG.INVALID;
       
       // Play audio/tactile feedback
       playSoundFeedback(resConfig.tone, soundEnabled);
 
-      setResult(data);
+      setResult(normalized);
 
       // Update shift stats
       setStats((prev) => {
-        const isOk = data.Result === 'SUCCESS';
+        const isOk = normalized.result === 'SUCCESS';
         const next = {
           valid: prev.valid + (isOk ? 1 : 0),
           alerts: prev.alerts + (isOk ? 0 : 1),
@@ -274,12 +294,10 @@ export default function CheckIn() {
 
       // Update history list with comprehensive ticket details
       setHistory((prev) => {
-        const item = {
-          ...data,
-          code: cleanCode,
-          time: new Date().toISOString(),
-        };
-        const updated = [item, ...prev.filter((x) => x.code !== cleanCode || Date.now() - new Date(x.time).getTime() > 10000)].slice(0, 30);
+        const updated = [
+          normalized,
+          ...prev.filter((x) => (x.code !== cleanCode && x.ticketId !== normalized.ticketId) || Date.now() - new Date(x.time).getTime() > 10000)
+        ].slice(0, 30);
         try { localStorage.setItem('tickethub_checkin_history', JSON.stringify(updated)); } catch {}
         return updated;
       });
@@ -416,10 +434,10 @@ export default function CheckIn() {
   // Filtered history list
   const filteredHistory = useMemo(() => {
     if (historyFilter === 'SUCCESS') {
-      return history.filter((h) => h.Result === 'SUCCESS');
+      return history.filter((h) => h.result === 'SUCCESS');
     }
     if (historyFilter === 'ALERT') {
-      return history.filter((h) => h.Result !== 'SUCCESS');
+      return history.filter((h) => h.result !== 'SUCCESS');
     }
     return history;
   }, [history, historyFilter]);
@@ -433,9 +451,9 @@ export default function CheckIn() {
     };
   }, []);
 
-  const resMeta = result?.Result ? RESULT_CONFIG[result.Result] : null;
+  const resMeta = result?.result ? RESULT_CONFIG[result.result] : null;
   const ResIcon = resMeta?.icon;
-  const activeWindow = result?.StartTime ? getCheckInWindow(result.StartTime, result.EndTime, result.CheckInAllowedFrom) : null;
+  const activeWindow = result?.startTime ? getCheckInWindow(result.startTime, result.endTime, result.checkInAllowedFrom) : null;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
@@ -713,7 +731,7 @@ export default function CheckIn() {
                 <Keyboard className="w-3.5 h-3.5 text-rose-400" />
                 Nhập mã thủ công / Máy bắn mã vạch USB
               </span>
-              <span className="text-[10px] text-slate-500 font-mono">Hỗ trợ phím Enter</span>
+              <span className="text-[10px] text-slate-500 font-mono">Hỗ trợ mã vé (VD: TK-182)</span>
             </div>
 
             <form onSubmit={handleManualSubmit} className="flex gap-2">
@@ -723,7 +741,7 @@ export default function CheckIn() {
                   type="text"
                   value={manual}
                   onChange={(e) => setManual(e.target.value.toUpperCase())}
-                  placeholder="Nhập mã vé hoặc quét bằng máy bắn mã vạch..."
+                  placeholder="Nhập mã QR hoặc số vé (VD: TK-182, 182)..."
                   className="w-full pl-3 pr-8 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-colors uppercase tracking-wider"
                 />
                 {manual && (
@@ -771,7 +789,7 @@ export default function CheckIn() {
                   </div>
                   <div>
                     <span className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] tracking-wider uppercase mb-1 ${resMeta.badge}`}>
-                      {result.Result}
+                      {result.result}
                     </span>
                     <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white font-sans uppercase">
                       {resMeta.label}
@@ -782,58 +800,58 @@ export default function CheckIn() {
                   </div>
                 </div>
 
-                {result.TicketId && (
+                {result.ticketId && (
                   <button
                     type="button"
-                    onClick={() => handleCopyCode(result.TicketId)}
+                    onClick={() => handleCopyCode(`TK-${result.ticketId}`)}
                     title="Sao chép mã vé"
                     className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex items-center gap-1.5 shrink-0 transition-colors"
                   >
-                    {copiedCode === result.TicketId ? <CheckCheck className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                    <span className="hidden sm:inline font-mono">{copiedCode === result.TicketId ? 'Đã chép' : 'Sao chép'}</span>
+                    {copiedCode === `TK-${result.ticketId}` ? <CheckCheck className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    <span className="hidden sm:inline font-mono">{copiedCode === `TK-${result.ticketId}` ? 'Đã chép' : 'Sao chép'}</span>
                   </button>
                 )}
               </div>
 
               {/* SPECIAL ADVICE BANNER DEPENDING ON STATUS */}
-              {result.Result === 'TOO_EARLY' && activeWindow && (
+              {result.result === 'TOO_EARLY' && activeWindow && (
                 <div className="mb-4 p-4 rounded-xl bg-amber-950/80 border border-amber-500/50 text-amber-200 text-xs sm:text-sm space-y-1.5 shadow-lg">
                   <div className="flex items-center gap-2 font-bold text-amber-300 uppercase tracking-wide">
                     <Clock className="w-4 h-4 text-amber-400" />
                     Chưa đến giờ mở cổng soát vé!
                   </div>
                   <div className="text-slate-300 text-xs leading-relaxed">
-                    Vé này thuộc suất chiếu lúc <strong className="text-white font-semibold">{formatShowtimeRange(result.StartTime, result.EndTime)}</strong>.
+                    Vé này thuộc suất chiếu lúc <strong className="text-white font-semibold">{formatShowtimeRange(result.startTime, result.endTime)}</strong>.
                   </div>
                   <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs font-medium">
-                    👉 <strong>Khung giờ được phép quét vé:</strong> Từ <span className="font-bold text-amber-300">{activeWindow.openTime}</span> đến <span className="font-bold text-amber-300">{activeWindow.closeTime}</span> (mở trước giờ chiếu 60 phút). Vui lòng hướng dẫn khách chờ đến <strong className="text-white underline">{activeWindow.openTime}</strong>!
+                    👉 <strong>Khung giờ được phép quét vé:</strong> Từ <span className="font-bold text-amber-300">{activeWindow.openTime}</span> đến <span className="font-bold text-amber-300">{activeWindow.closeTime}</span> (mở trước giờ chiếu 60 phút). Vui lòng hướng dẫn khách quay lại lúc <strong className="text-white underline">{activeWindow.openTime}</strong>!
                   </div>
                 </div>
               )}
 
-              {result.Result === 'ALREADY_USED' && (
+              {result.result === 'ALREADY_USED' && (
                 <div className="mb-4 p-3.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-200 text-xs sm:text-sm space-y-1 shadow-lg">
                   <div className="flex items-center gap-2 font-bold text-rose-300 uppercase tracking-wide">
                     <AlertCircle className="w-4 h-4 text-rose-400" />
                     Cảnh báo: Vé đã được sử dụng qua cổng!
                   </div>
                   <div className="text-slate-300 text-xs leading-relaxed">
-                    Vé đã từng được soát vào lúc: <strong className="text-rose-300 font-mono font-bold">{result.CheckedInAt ? fmtDateTime(result.CheckedInAt) : 'Thời gian trước đó'}</strong>.
+                    Vé đã từng được soát vào lúc: <strong className="text-rose-300 font-mono font-bold">{result.checkedInAt ? fmtDateTime(result.checkedInAt) : 'Thời gian trước đó'}</strong>.
                   </div>
                   <div className="text-slate-400 text-[11px]">
-                    Vui lòng giữ khách lại và đối chiếu lại số ghế, thông tin tài khoản hoặc hóa đơn đặt vé của khách hàng.
+                    Vui lòng đối chiếu lại số ghế, phòng chiếu và thông tin người cầm vé!
                   </div>
                 </div>
               )}
 
-              {result.Result === 'EXPIRED' && (
+              {result.result === 'EXPIRED' && (
                 <div className="mb-4 p-3.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-200 text-xs sm:text-sm space-y-1 shadow-lg">
                   <div className="flex items-center gap-2 font-bold text-rose-300 uppercase tracking-wide">
                     <CalendarX className="w-4 h-4 text-rose-400" />
                     Suất chiếu đã kết thúc hoặc quá giờ quét!
                   </div>
                   <div className="text-slate-300 text-xs leading-relaxed">
-                    Suất chiếu diễn ra lúc: <strong className="text-white">{formatShowtimeRange(result.StartTime, result.EndTime)}</strong>. Cổng soát vé cho suất chiếu này đã hết hạn hiệu lực.
+                    Suất chiếu diễn ra lúc: <strong className="text-white">{formatShowtimeRange(result.startTime, result.endTime)}</strong>. Cổng soát vé cho suất chiếu này đã hết hạn hiệu lực.
                   </div>
                 </div>
               )}
@@ -849,7 +867,7 @@ export default function CheckIn() {
                   <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Tên phim</div>
                     <div className="text-base sm:text-lg font-bold text-white truncate">
-                      {result.MovieTitle || 'Không xác định'}
+                      {result.movieTitle || 'Vé điện tử TicketHub'}
                     </div>
                   </div>
                 </div>
@@ -862,7 +880,7 @@ export default function CheckIn() {
                   <div>
                     <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Phòng chiếu</div>
                     <div className="text-base font-bold text-white">
-                      {result.RoomName || '--'}
+                      {result.roomName || 'Phòng chiếu rạp'}
                     </div>
                   </div>
                 </div>
@@ -875,7 +893,7 @@ export default function CheckIn() {
                   <div>
                     <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Vị trí ghế</div>
                     <div className="text-xl font-black text-amber-400 font-mono tracking-wider">
-                      {result.SeatLabel || '--'}
+                      {result.seatLabel || 'Chưa định danh'}
                     </div>
                   </div>
                 </div>
@@ -890,7 +908,7 @@ export default function CheckIn() {
                       Giờ chiếu của phim
                     </div>
                     <div className="text-sm font-bold text-white font-mono mt-0.5">
-                      {result.StartTime ? formatShowtimeRange(result.StartTime, result.EndTime) : '--'}
+                      {formatShowtimeRange(result.startTime, result.endTime)}
                     </div>
                     <div className="text-[10px] text-slate-400 mt-0.5">
                       Thời gian suất chiếu chính thức
@@ -908,10 +926,10 @@ export default function CheckIn() {
                       Giờ được phép quét vé
                     </div>
                     <div className="text-sm font-bold text-emerald-400 font-mono mt-0.5">
-                      {activeWindow ? activeWindow.fullText : '--'}
+                      {activeWindow ? activeWindow.fullText : 'Mở trước giờ chiếu 60 phút'}
                     </div>
                     <div className="text-[10px] text-slate-400 mt-0.5">
-                      Mở cổng trước giờ chiếu 60 phút
+                      Hệ thống tự động mở cổng soát vé
                     </div>
                   </div>
                 </div>
@@ -924,7 +942,7 @@ export default function CheckIn() {
                   <div>
                     <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Thời điểm quét vé</div>
                     <div className="text-sm font-bold text-slate-200 font-mono">
-                      {result.CheckedInAt ? fmtDateTime(result.CheckedInAt) : fmtDateTime(new Date().toISOString())}
+                      {result.checkedInAt ? fmtDateTime(result.checkedInAt) : fmtDateTime(result.time)}
                     </div>
                   </div>
                 </div>
@@ -937,7 +955,7 @@ export default function CheckIn() {
                   <div className="min-w-0 flex-1">
                     <div className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Mã vé / ID</div>
                     <div className="text-xs font-bold text-slate-300 font-mono truncate">
-                      {result.TicketId ? `TK-${result.TicketId}` : (result.code || '--')}
+                      {result.ticketId ? `TK-${result.ticketId}` : (result.code || 'Mã vé')}
                     </div>
                   </div>
                 </div>
@@ -953,7 +971,7 @@ export default function CheckIn() {
                 Cổng Sẵn Sàng Soát Vé
               </h3>
               <p className="text-xs text-slate-400 max-w-sm leading-relaxed mb-6">
-                Hướng mã QR trên vé điện tử của khách hàng vào camera, hoặc nhập mã vé / sử dụng máy đọc mã vạch USB để tiến hành xác thực.
+                Hướng mã QR trên vé điện tử của khách hàng vào camera, hoặc nhập mã vé (VD: TK-182) / sử dụng máy đọc mã vạch USB để tiến hành xác thực.
               </p>
               <div className="flex flex-wrap justify-center gap-2 text-xs text-slate-500">
                 <span className="px-2.5 py-1 rounded-lg bg-slate-800/80 border border-white/5">Mở soát trước giờ chiếu 60p</span>
@@ -1000,7 +1018,7 @@ export default function CheckIn() {
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Hợp lệ ({history.filter((h) => h.Result === 'SUCCESS').length})
+                    Hợp lệ ({history.filter((h) => h.result === 'SUCCESS').length})
                   </button>
                   <button
                     type="button"
@@ -1011,7 +1029,7 @@ export default function CheckIn() {
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Cảnh báo ({history.filter((h) => h.Result !== 'SUCCESS').length})
+                    Cảnh báo ({history.filter((h) => h.result !== 'SUCCESS').length})
                   </button>
                 </div>
 
@@ -1036,19 +1054,19 @@ export default function CheckIn() {
             {/* HISTORY CARDS LIST */}
             {filteredHistory.length === 0 ? (
               <div className="py-8 text-center text-xs text-slate-500">
-                Chưa có lượt quét nào trong bộ lọc này.
+                Chưa có lượt quét nào trong ca này.
               </div>
             ) : (
               <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
                 {filteredHistory.map((h, i) => {
-                  const meta = RESULT_CONFIG[h.Result] || RESULT_CONFIG.INVALID;
+                  const meta = RESULT_CONFIG[h.result] || RESULT_CONFIG.INVALID;
                   const Icon = meta.icon;
-                  const itemWindow = h.StartTime ? getCheckInWindow(h.StartTime, h.EndTime, h.CheckInAllowedFrom) : null;
-                  const isCurrentSelected = result && (result.TicketId === h.TicketId || result.code === h.code);
+                  const itemWindow = h.startTime ? getCheckInWindow(h.startTime, h.endTime, h.checkInAllowedFrom) : null;
+                  const isCurrentSelected = result && ((result.ticketId && result.ticketId === h.ticketId) || result.code === h.code);
 
                   return (
                     <div
-                      key={h.code + i}
+                      key={(h.ticketId || h.code) + i}
                       onClick={() => setResult(h)}
                       className={`p-3.5 rounded-xl transition-all cursor-pointer border ${
                         isCurrentSelected
@@ -1064,17 +1082,17 @@ export default function CheckIn() {
                           </div>
                           <div className="min-w-0">
                             <h4 className="text-xs sm:text-sm font-bold text-white truncate leading-tight">
-                              {h.MovieTitle || 'Vé điện tử TicketHub'}
+                              {h.movieTitle || 'Vé điện tử TicketHub'}
                             </h4>
                             <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                              Mã vé: <span className="text-slate-300 font-semibold">{h.TicketId ? `TK-${h.TicketId}` : h.code}</span>
+                              Mã vé: <span className="text-slate-300 font-semibold">{h.ticketId ? `TK-${h.ticketId}` : (h.code || 'Mã vé')}</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="text-right shrink-0">
                           <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${meta.badge}`}>
-                            {h.Result}
+                            {h.result}
                           </span>
                           <div className="text-[10px] text-slate-400 font-mono mt-1">
                             Quét lúc: <span className="text-slate-300 font-medium">{fmtTime(h.time)}</span>
@@ -1089,11 +1107,11 @@ export default function CheckIn() {
                         <div className="flex items-center gap-3 text-slate-300">
                           <span className="flex items-center gap-1 text-slate-400 text-[11px]">
                             <Building2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                            Phòng: <strong className="text-white">{h.RoomName || '--'}</strong>
+                            Phòng: <strong className="text-white">{h.roomName || 'Phòng chiếu rạp'}</strong>
                           </span>
                           <span className="flex items-center gap-1 text-[11px]">
                             <Armchair className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                            Ghế: <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono font-bold">{h.SeatLabel || '--'}</span>
+                            Ghế: <span className="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono font-bold">{h.seatLabel || 'Chưa định danh'}</span>
                           </span>
                         </div>
 
@@ -1102,7 +1120,7 @@ export default function CheckIn() {
                           <Clock className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                           <span className="text-slate-400">Giờ chiếu:</span>
                           <span className="font-mono text-purple-300 font-semibold truncate">
-                            {h.StartTime ? formatShowtimeRange(h.StartTime, h.EndTime) : '--'}
+                            {formatShowtimeRange(h.startTime, h.endTime)}
                           </span>
                         </div>
 
@@ -1111,7 +1129,7 @@ export default function CheckIn() {
                           <CalendarCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                           <span className="text-slate-400">Giờ mở quét:</span>
                           <span className="font-mono text-emerald-400 font-semibold">
-                            {itemWindow ? itemWindow.fullText : 'Mở trước giờ chiếu 60p'}
+                            {itemWindow ? itemWindow.fullText : 'Mở trước giờ chiếu 60 phút'}
                           </span>
                           <span className="text-[10px] text-slate-500 ml-auto hidden sm:inline">
                             (Nhấp để xem lại hồ sơ)

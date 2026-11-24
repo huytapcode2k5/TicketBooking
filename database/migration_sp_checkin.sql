@@ -1,6 +1,7 @@
 -- =========================================================================
--- MIGRATION: Cap nhat thu tuc sp_CheckInTicket de tra ve EndTime va CheckInAllowedFrom
--- Muc dich: Ho tro nhan vien soat ve biet chinh xac gio chieu va khung gio duoc phep quet
+-- MIGRATION: Cap nhat thu tuc sp_CheckInTicket
+-- 1. Tra ve StartTime, EndTime, CheckInAllowedFrom (mo cua truoc gio chieu 60 phut)
+-- 2. Ho tro quet bang ca ma QrToken dai HOAC ma ve TicketId (vd: 182 hoac TK-182)
 -- =========================================================================
 
 CREATE OR ALTER PROCEDURE dbo.sp_CheckInTicket
@@ -12,12 +13,15 @@ BEGIN
 
     DECLARE @Now DATETIME2 = SYSUTCDATETIME();
     DECLARE @Result VARCHAR(20);
+    DECLARE @CleanToken VARCHAR(64) = LTRIM(RTRIM(@QrToken));
+    DECLARE @CleanId VARCHAR(64) = REPLACE(@CleanToken, 'TK-', '');
 
     UPDATE t
     SET t.Status = 'USED', t.CheckedInAt = @Now, t.CheckedInBy = @StaffId
     FROM dbo.Tickets t
     JOIN dbo.Showtimes st ON st.ShowtimeId = t.ShowtimeId
-    WHERE t.QrToken = @QrToken AND t.Status = 'VALID'
+    WHERE (t.QrToken = @CleanToken OR CAST(t.TicketId AS VARCHAR(64)) = @CleanId)
+      AND t.Status = 'VALID'
       AND st.Status <> 'CANCELLED'
       AND @Now >= DATEADD(MINUTE, -60, st.StartTime)
       AND @Now <= st.EndTime;
@@ -29,7 +33,7 @@ BEGIN
         DECLARE @TStatus VARCHAR(10), @Start DATETIME2;
         SELECT @TStatus = t.Status, @Start = st.StartTime
         FROM dbo.Tickets t JOIN dbo.Showtimes st ON st.ShowtimeId = t.ShowtimeId
-        WHERE t.QrToken = @QrToken;
+        WHERE (t.QrToken = @CleanToken OR CAST(t.TicketId AS VARCHAR(64)) = @CleanId);
 
         IF @TStatus IS NULL               SET @Result = 'INVALID';
         ELSE IF @TStatus = 'USED'         SET @Result = 'ALREADY_USED';
@@ -47,8 +51,8 @@ BEGIN
            st.EndTime,
            DATEADD(MINUTE, -60, st.StartTime) AS CheckInAllowedFrom,
            t.CheckedInAt
-    FROM (SELECT @QrToken AS QrToken) q
-    LEFT JOIN dbo.Tickets   t  ON t.QrToken = q.QrToken
+    FROM (SELECT @CleanToken AS QrToken) q
+    LEFT JOIN dbo.Tickets   t  ON (t.QrToken = q.QrToken OR CAST(t.TicketId AS VARCHAR(64)) = @CleanId)
     LEFT JOIN dbo.Showtimes st ON st.ShowtimeId = t.ShowtimeId
     LEFT JOIN dbo.Movies    m  ON m.MovieId = st.MovieId
     LEFT JOIN dbo.Rooms     r  ON r.RoomId = st.RoomId
