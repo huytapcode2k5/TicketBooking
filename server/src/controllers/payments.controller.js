@@ -66,6 +66,16 @@ async function confirmPayment({ orderCode, amount, providerRef, raw }) {
           emitToUser(adm.userId, 'notification:new', {});
         }
 
+        // Lưu thông báo cho chính khách hàng đặt vé
+        const customerTitle = `Đặt vé thành công (#${orderInfo.orderCode})`;
+        const customerContent = `Bạn đã đặt thành công ${orderInfo.ticketCount} vé phim "${orderInfo.movieTitle || 'Sự kiện'}". Nhấn vào đây để xem chi tiết vé vừa đặt.`;
+        await query(
+          `INSERT INTO Notifications (UserId, Title, Content, IsRead, CreatedAt)
+           VALUES (@UserId, @Title, @Content, 0, SYSUTCDATETIME())`,
+          { UserId: result.userId, Title: customerTitle, Content: customerContent },
+        ).catch(() => {});
+        emitToUser(result.userId, 'notification:new', {});
+
         // 2. Phát sự kiện popup realtime tới Admin trên trang admin
         emitToAdmin('admin:order_success', {
           orderId: result.orderId,

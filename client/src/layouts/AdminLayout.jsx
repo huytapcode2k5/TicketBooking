@@ -173,11 +173,16 @@ export default function AdminLayout() {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto p-4 rounded-2xl bg-surface border border-emerald-500/30 shadow-2xl animate-in slide-in-from-bottom-5 duration-300 space-y-2.5"
+            onClick={() => {
+              removeToast(t.id);
+              navigate(`/admin/orders?orderId=${t.orderId}&autoOpen=true`);
+            }}
+            className="pointer-events-auto p-4 rounded-2xl bg-surface border border-emerald-500/40 shadow-2xl animate-in slide-in-from-bottom-5 duration-300 space-y-2.5 cursor-pointer hover:border-emerald-400 hover:scale-[1.02] transition-all group"
+            title="Nhấn để mở chi tiết vé và đơn hàng vừa đặt"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <div className="h-7 w-7 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
                   <ShoppingBag className="h-4 w-4" />
                 </div>
                 <div>
@@ -191,8 +196,12 @@ export default function AdminLayout() {
               </div>
 
               <button
-                onClick={() => removeToast(t.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeToast(t.id);
+                }}
                 className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10"
+                title="Đóng thông báo"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -206,13 +215,14 @@ export default function AdminLayout() {
 
             <div className="pt-1 pl-9 flex items-center gap-2">
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   removeToast(t.id);
-                  navigate('/admin/orders');
+                  navigate(`/admin/orders?orderId=${t.orderId}&autoOpen=true`);
                 }}
-                className="btn-primary !py-1.5 !px-3 text-[11px] font-semibold inline-flex items-center gap-1"
+                className="btn-primary !py-1.5 !px-3 text-[11px] font-semibold inline-flex items-center gap-1 shadow-md shadow-emerald-500/10"
               >
-                <span>Xem đơn hàng</span>
+                <span>Xem chi tiết vé vừa đặt</span>
                 <ChevronRight className="h-3 w-3" />
               </button>
             </div>

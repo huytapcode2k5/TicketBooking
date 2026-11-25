@@ -17,7 +17,7 @@ const BASE = `
 
 /** where: chuỗi cố định trong code (không lấy từ người dùng); giá trị truyền qua params. */
 export async function ticketsWithQr(where, params) {
-  const rows = await query(`${BASE} WHERE ${where} ORDER BY st.StartTime DESC, s.RowLabel, s.ColNumber`, params);
+  const rows = await query(`${BASE} WHERE ${where} ORDER BY t.IssuedAt DESC, t.TicketId DESC, s.RowLabel, s.ColNumber`, params);
   return Promise.all(
     rows.map(async (t) => ({ ...t, orderCode: Number(t.orderCode), qrDataUrl: await QRCode.toDataURL(t.qrToken, { margin: 1, width: 260 }) })),
   );

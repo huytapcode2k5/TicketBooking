@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/axios.js';
 import TicketCard from '../components/ticket/TicketCard.jsx';
 import Spinner from '../components/common/Spinner.jsx';
-import { Ticket, Calendar, CheckCircle2, XCircle, Compass, AlertCircle } from 'lucide-react';
+import { Ticket, Calendar, CheckCircle2, XCircle, Compass, AlertCircle, Sparkles } from 'lucide-react';
 
 const TABS = [
   { k: 'upcoming', label: 'Vé sắp xem', icon: Calendar },
@@ -12,6 +12,9 @@ const TABS = [
 ];
 
 export default function MyTickets() {
+  const [searchParams] = useSearchParams();
+  const targetOrderCode = searchParams.get('orderCode');
+
   const [tickets, setTickets] = useState(null);
   const [tab, setTab] = useState('upcoming');
   const [error, setError] = useState('');
@@ -29,6 +32,34 @@ export default function MyTickets() {
   const group = (t) =>
     t.status === 'CANCELLED' ? 'cancelled' : t.status === 'USED' || new Date(t.endTime).getTime() < now ? 'used' : 'upcoming';
 
+  // Đảm bảo vé mới đặt luôn luôn hiển thị ở trên cùng
+  const sortedTickets = useMemo(() => {
+    if (!tickets) return [];
+    return [...tickets].sort((a, b) => {
+      // Ưu tiên đưa vé vừa được thông báo / đặt lên vị trí đầu tiên
+      if (targetOrderCode) {
+        const aMatch = String(a.orderCode) === String(targetOrderCode);
+        const bMatch = String(b.orderCode) === String(targetOrderCode);
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+      }
+      // Sắp xếp mã vé mới nhất / thời gian đặt mới nhất lên trước
+      const idDiff = (b.ticketId ?? 0) - (a.ticketId ?? 0);
+      if (idDiff !== 0) return idDiff;
+      return new Date(b.issuedAt || 0).getTime() - new Date(a.issuedAt || 0).getTime();
+    });
+  }, [tickets, targetOrderCode]);
+
+  // Tự động chuyển tab sang tab chứa vé vừa đặt nếu có param orderCode
+  useEffect(() => {
+    if (tickets && targetOrderCode) {
+      const target = tickets.find((t) => String(t.orderCode) === String(targetOrderCode));
+      if (target) {
+        setTab(group(target));
+      }
+    }
+  }, [tickets, targetOrderCode]);
+
   const refund = async (t) => {
     if (!window.confirm(`Hủy toàn bộ vé của đơn #${t.orderCode}? Chỉ hoàn được khi còn hơn 24 giờ trước giờ chiếu.`)) return;
     try {
@@ -40,7 +71,7 @@ export default function MyTickets() {
   };
 
   if (!tickets && !error) return <Spinner label="Đang tải danh sách vé..." />;
-  const list = (tickets ?? []).filter((t) => group(t) === tab);
+  const list = sortedTickets.filter((t) => group(t) === tab);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -104,9 +135,19 @@ export default function MyTickets() {
 
       {/* Ticket Cards */}
       <div className="space-y-5">
-        {list.map((t) => (
-          <TicketCard key={t.ticketId} t={t} canRefund={tab === 'upcoming'} onRefund={refund} />
-        ))}
+        {list.map((t) => {
+          const isTarget = targetOrderCode && String(t.orderCode) === String(targetOrderCode);
+          return (
+            <div
+              key={t.ticketId}
+              className={`transition-all rounded-2xl ${
+                isTarget ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg shadow-xl shadow-accent/25 animate-pulse' : ''
+              }`}
+            >
+              <TicketCard t={t} canRefund={tab === 'upcoming'} onRefund={refund} />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

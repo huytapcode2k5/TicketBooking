@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/axios.js';
+import { useSocketEvent } from '../../hooks/useSocketEvent.js';
 import Spinner from '../../components/common/Spinner.jsx';
 import { vnd, fmtDateTime, fmtDate, fmtTime, SEAT_TYPE_LABEL } from '../../utils/format.js';
 import { 
@@ -35,8 +37,13 @@ const STATUS_CONFIG = {
 };
 
 export default function AdminOrders() {
+  const [searchParams] = useSearchParams();
+  const urlOrderId = searchParams.get('orderId');
+  const urlQ = searchParams.get('q');
+  const autoOpen = searchParams.get('autoOpen');
+
   const [orders, setOrders] = useState(null);
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(urlQ || '');
   const [status, setStatus] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [invoiceOrder, setInvoiceOrder] = useState(null);
@@ -54,10 +61,38 @@ export default function AdminOrders() {
       .catch((e) => setError(e.message));
   }, [q, status]);
 
+  // Lắng nghe sự kiện khách đặt vé thành công theo thời gian thực để đưa đơn mới lên đầu danh sách
+  useSocketEvent('admin:order_success', () => {
+    load();
+  });
+
   useEffect(() => {
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
   }, [load]);
+
+  // Tự động mở chi tiết vé/đơn hàng khi nhấn vào thông báo
+  useEffect(() => {
+    if (urlOrderId && (autoOpen === 'true' || autoOpen === '1')) {
+      viewDetail(urlOrderId);
+    }
+  }, [urlOrderId, autoOpen]);
+
+  useEffect(() => {
+    if (urlQ) {
+      setQ(urlQ);
+    }
+  }, [urlQ]);
+
+  // Nếu tìm kiếm theo mã đơn từ thông báo và có autoOpen, tự động mở đơn đó
+  useEffect(() => {
+    if (orders && urlQ && (autoOpen === 'true' || autoOpen === '1') && !selectedOrder && orders.length > 0) {
+      const matched = orders.find((o) => String(o.orderCode) === String(urlQ)) || orders[0];
+      if (matched) {
+        viewDetail(matched.orderId);
+      }
+    }
+  }, [orders, urlQ, autoOpen]);
 
   const viewInvoice = async (orderId) => {
     setLoadingDetail(true);
@@ -210,8 +245,16 @@ export default function AdminOrders() {
             <tbody className="divide-y divide-white/5">
               {orders.map((o) => {
                 const cfg = STATUS_CONFIG[o.status] || { label: o.status, badge: 'bg-white/10 text-white' };
+                const isTarget = (urlOrderId && o.orderId === Number(urlOrderId)) || (urlQ && String(o.orderCode) === String(urlQ));
                 return (
-                  <tr key={o.orderId} className="hover:bg-white/[0.03] transition-colors">
+                  <tr
+                    key={o.orderId}
+                    className={`transition-all ${
+                      isTarget
+                        ? 'bg-emerald-500/15 border-l-4 border-l-emerald-400 font-medium shadow-inner'
+                        : 'hover:bg-white/[0.03]'
+                    }`}
+                  >
                     <td className="py-3.5 px-4 font-mono font-bold text-white whitespace-nowrap">
                       #{o.orderCode}
                     </td>
