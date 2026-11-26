@@ -1,22 +1,37 @@
 import { GoogleGenAI, ApiError } from '@google/genai';
+import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { query } from '../utils/db.js';
 import { HttpError } from '../utils/httpError.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /*
  * Trợ lý TicketHub: chatbot tư vấn khách bằng Gemini (gói miễn phí của Google AI Studio).
  * Bot chỉ ĐỌC dữ liệu qua các hàm bên dưới (function calling), không giữ ghế hay tạo đơn.
  * Cấu hình trong server/.env: GEMINI_API_KEY (bắt buộc), GEMINI_MODEL (tùy chọn).
  */
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+const getModel = () => process.env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash-lite';
 const MAX_TOOL_ROUNDS = 5;
 const TZ = 'Asia/Ho_Chi_Minh';
 
 let client;
+let currentApiKey;
 function getClient() {
   if (!process.env.GEMINI_API_KEY) {
+    // Tự động nạp lại .env nếu người dùng vừa mới lưu key vào server/.env mà chưa khởi động lại server
+    dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+    dotenv.config();
+  }
+  const key = process.env.GEMINI_API_KEY?.trim();
+  if (!key) {
     throw new HttpError(503, 'Trợ lý AI chưa được cấu hình (thiếu GEMINI_API_KEY trong server/.env).');
   }
-  client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  if (!client || currentApiKey !== key) {
+    client = new GoogleGenAI({ apiKey: key });
+    currentApiKey = key;
+  }
   return client;
 }
 
@@ -235,7 +250,7 @@ export async function chat(history) {
 
   try {
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-      const response = await ai.models.generateContent({ model: MODEL, contents, config });
+      const response = await ai.models.generateContent({ model: getModel(), contents, config });
       const calls = response.functionCalls;
       if (!calls?.length) {
         const text = response.text?.trim();
