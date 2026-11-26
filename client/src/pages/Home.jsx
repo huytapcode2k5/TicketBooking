@@ -51,9 +51,15 @@ export default function Home() {
 
   useEffect(() => {
     setPage(1);
-    // Khi có từ khóa tìm kiếm q và không chỉ định tab, mặc định hiển thị tất cả trạng thái để tìm thấy phim
-    if (q && !params.get('status')) {
+    const paramStatus = params.get('status');
+    const paramCinema = params.get('cinemaId');
+    if (paramStatus !== null) {
+      setStatus(paramStatus);
+    } else if (q) {
       setStatus('');
+    }
+    if (paramCinema !== null) {
+      setCinemaId(paramCinema);
     }
   }, [q, params]);
 

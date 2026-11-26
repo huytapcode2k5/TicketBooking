@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import Navbar from '../components/common/Navbar.jsx';
 import ChatWidget from '../components/chat/ChatWidget.jsx';
@@ -11,10 +12,42 @@ import {
   MapPin, 
   ExternalLink,
   Sparkles,
-  Heart
+  Heart,
+  Bot,
+  Send,
+  CheckCircle2,
+  ChevronUp,
+  FileText,
+  RotateCcw
 } from 'lucide-react';
+import { 
+  RefundPolicyModal, 
+  TermsModal, 
+  VenuesModal, 
+  PaymentInfoModal 
+} from '../components/common/FooterModals.jsx';
 
 export default function MainLayout() {
+  const [activeModal, setActiveModal] = useState(null); // 'refund' | 'terms' | 'venues' | 'payment'
+  const [emailSub, setEmailSub] = useState('');
+  const [subToast, setSubToast] = useState('');
+
+  const onOpenChat = () => {
+    window.dispatchEvent(new CustomEvent('open-chat'));
+  };
+
+  const onSubscribe = (e) => {
+    e.preventDefault();
+    if (!emailSub.trim() || !emailSub.includes('@')) return;
+    setSubToast('Cảm ơn bạn đã đăng ký! Ưu đãi mới nhất sẽ được gửi vào email của bạn.');
+    setEmailSub('');
+    setTimeout(() => setSubToast(''), 4000);
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen flex flex-col relative bg-bg text-slate-100 overflow-x-hidden">
       {/* Main Navbar */}
@@ -26,6 +59,24 @@ export default function MainLayout() {
       </main>
 
       <ChatWidget />
+
+      {/* Footer Modals */}
+      <RefundPolicyModal 
+        isOpen={activeModal === 'refund'} 
+        onClose={() => setActiveModal(null)} 
+      />
+      <TermsModal 
+        isOpen={activeModal === 'terms'} 
+        onClose={() => setActiveModal(null)} 
+      />
+      <VenuesModal 
+        isOpen={activeModal === 'venues'} 
+        onClose={() => setActiveModal(null)} 
+      />
+      <PaymentInfoModal 
+        isOpen={activeModal === 'payment'} 
+        onClose={() => setActiveModal(null)} 
+      />
 
       {/* Footer */}
       <footer className="mt-16 border-t border-white/[0.08] bg-surface/70 backdrop-blur-xl">
@@ -44,65 +95,165 @@ export default function MainLayout() {
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-sm">
                 Nền tảng đặt vé xem phim & sự kiện trực tuyến hàng đầu. Trải nghiệm giữ chỗ thời gian thực, thanh toán tự động qua Ví MoMo và nhận vé điện tử tức thì.
               </p>
+
+              {/* Newsletter / Khuyến mãi */}
+              <div className="pt-1 max-w-sm">
+                <div className="text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-accent" />
+                  <span>Đăng ký nhận mã giảm giá & phim hot</span>
+                </div>
+                <form onSubmit={onSubscribe} className="flex gap-2">
+                  <input
+                    type="email"
+                    value={emailSub}
+                    onChange={(e) => setEmailSub(e.target.value)}
+                    placeholder="Nhập email của bạn..."
+                    className="input !py-1.5 !px-3 text-xs flex-1 bg-surface2/80 border-white/10 focus:border-accent"
+                    required
+                  />
+                  <button type="submit" className="btn btn-primary !py-1.5 !px-3 text-xs shrink-0 flex items-center gap-1">
+                    <Send className="h-3.5 w-3.5" />
+                    Đăng ký
+                  </button>
+                </form>
+                {subToast && (
+                  <p className="text-xs text-emerald-400 mt-2 animate-in fade-in flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    {subToast}
+                  </p>
+                )}
+              </div>
+
               <div className="flex items-center gap-3 pt-1">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-xs font-semibold text-emerald-400">
+                <button 
+                  onClick={() => setActiveModal('payment')}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                >
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  Bảo mật giao dịch 100%
-                </span>
+                  Bảo mật giao dịch 100% (Chi tiết)
+                </button>
               </div>
             </div>
 
             {/* Column 2: Quick Links */}
             <div>
-              <h4 className="text-xs font-semibold text-slate-300 mb-3">
+              <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">
                 Khám phá
               </h4>
               <ul className="space-y-2 text-xs sm:text-sm text-slate-400">
-                <li><Link to="/?status=NOW_SHOWING" className="hover:text-accent transition-colors">Phim đang chiếu</Link></li>
-                <li><Link to="/?status=COMING_SOON" className="hover:text-accent transition-colors">Sắp khởi chiếu</Link></li>
-                <li><Link to="/" className="hover:text-accent transition-colors">Cụm rạp & Địa điểm</Link></li>
-                <li><Link to="/my-tickets" className="hover:text-accent transition-colors">Tra cứu vé điện tử</Link></li>
+                <li>
+                  <Link to="/?status=NOW_SHOWING" className="hover:text-accent transition-colors block py-0.5">
+                    Phim đang chiếu
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/?status=COMING_SOON" className="hover:text-accent transition-colors block py-0.5">
+                    Sắp khởi chiếu
+                  </Link>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => setActiveModal('venues')} 
+                    className="hover:text-accent transition-colors flex items-center gap-1.5 py-0.5 text-left"
+                  >
+                    <MapPin className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <span>Cụm rạp & Địa điểm</span>
+                  </button>
+                </li>
+                <li>
+                  <Link to="/my-tickets" className="hover:text-accent transition-colors block py-0.5">
+                    Tra cứu vé điện tử
+                  </Link>
+                </li>
               </ul>
             </div>
 
             {/* Column 3: Customer Care */}
             <div>
-              <h4 className="text-xs font-semibold text-slate-300 mb-3">
+              <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">
                 Hỗ trợ khách hàng
               </h4>
               <ul className="space-y-2 text-xs sm:text-sm text-slate-400">
-                <li className="flex items-center gap-2">
-                  <Phone className="h-3.5 w-3.5 text-accent" />
-                  <span>Hotline: 1900 6868</span>
+                <li>
+                  <a href="tel:19006868" className="flex items-center gap-2 hover:text-accent transition-colors py-0.5">
+                    <Phone className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <span>Hotline: <b className="text-slate-200">1900 6868</b></span>
+                  </a>
                 </li>
-                <li className="flex items-center gap-2">
-                  <Mail className="h-3.5 w-3.5 text-accent" />
-                  <span>support@tickethub.vn</span>
+                <li>
+                  <a href="mailto:support@tickethub.vn" className="flex items-center gap-2 hover:text-accent transition-colors py-0.5">
+                    <Mail className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <span>support@tickethub.vn</span>
+                  </a>
                 </li>
-                <li><span className="hover:text-accent cursor-pointer">Chính sách đổi trả & hoàn vé</span></li>
-                <li><span className="hover:text-accent cursor-pointer">Điều khoản dịch vụ</span></li>
+                <li>
+                  <button 
+                    onClick={() => setActiveModal('refund')} 
+                    className="hover:text-accent transition-colors flex items-center gap-1.5 py-0.5 text-left"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <span>Chính sách đổi trả & hoàn vé</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => setActiveModal('terms')} 
+                    className="hover:text-accent transition-colors flex items-center gap-1.5 py-0.5 text-left"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-accent shrink-0" />
+                    <span>Điều khoản dịch vụ</span>
+                  </button>
+                </li>
+                <li className="pt-1">
+                  <button 
+                    onClick={onOpenChat} 
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-accent/15 border border-accent/30 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent hover:text-white transition-all shadow-sm"
+                  >
+                    <Bot className="h-3.5 w-3.5" />
+                    <span>Hỏi trợ lý AI 24/7</span>
+                  </button>
+                </li>
               </ul>
             </div>
 
             {/* Column 4: Payment Partners */}
             <div>
-              <h4 className="text-xs font-semibold text-slate-300 mb-3">
+              <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">
                 Đối tác thanh toán
               </h4>
               <div className="flex flex-wrap gap-2 text-xs">
-                <span className="px-2.5 py-1 rounded-lg bg-pink-500/10 border border-pink-500/30 font-bold text-pink-400">
+                <button 
+                  onClick={() => setActiveModal('payment')}
+                  title="Xem quy định thanh toán MoMo"
+                  className="px-2.5 py-1 rounded-lg bg-pink-500/10 border border-pink-500/30 font-bold text-pink-400 hover:bg-pink-500/20 transition-colors"
+                >
                   Ví MoMo
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 font-bold text-blue-400">
+                </button>
+                <button 
+                  onClick={() => setActiveModal('payment')}
+                  title="Xem danh sách ngân hàng ATM nội địa"
+                  className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 font-bold text-blue-400 hover:bg-white/10 transition-colors"
+                >
                   Thẻ ATM Nội Địa
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 font-bold text-amber-400">
+                </button>
+                <button 
+                  onClick={() => setActiveModal('payment')}
+                  title="Xem quy định thẻ quốc tế"
+                  className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 font-bold text-amber-400 hover:bg-white/10 transition-colors"
+                >
                   Visa / Mastercard
-                </span>
+                </button>
               </div>
               <p className="mt-3 text-[11px] text-slate-400 leading-normal">
-                Hệ thống xác nhận thanh toán tức thời qua cổng Open Banking & Webhook bảo mật.
+                Hệ thống xác nhận thanh toán tức thời qua cổng Open Banking & Webhook bảo mật PCI DSS.
               </p>
+              <button
+                onClick={() => setActiveModal('payment')}
+                className="mt-2 text-[11px] text-accent hover:underline flex items-center gap-1 font-medium"
+              >
+                <span>Xem chi tiết cổng thanh toán</span>
+                <ExternalLink className="h-3 w-3" />
+              </button>
             </div>
           </div>
 
@@ -111,8 +262,18 @@ export default function MainLayout() {
             <div>
               © 2026 <b className="text-white">TicketHub</b>. All rights reserved.
             </div>
+
             <div className="flex items-center gap-4">
               <span>Được xây dựng với React, Node.js & SQL Server</span>
+              <span>•</span>
+              <button 
+                onClick={scrollToTop} 
+                className="hover:text-accent flex items-center gap-1 transition-colors text-slate-300 font-medium"
+                title="Cuộn lên đầu trang"
+              >
+                <span>Lên đầu trang</span>
+                <ChevronUp className="h-3.5 w-3.5" />
+              </button>
               <span>•</span>
               <span className="text-accent flex items-center gap-1 font-medium">
                 <Sparkles className="h-3 w-3" />

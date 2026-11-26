@@ -78,6 +78,11 @@ export default function ChatWidget() {
 
   useEffect(() => save(messages), [messages]);
   useEffect(() => {
+    const onOpenChat = () => setOpen(true);
+    window.addEventListener('open-chat', onOpenChat);
+    return () => window.removeEventListener('open-chat', onOpenChat);
+  }, []);
+  useEffect(() => {
     if (open) {
       endRef.current?.scrollIntoView({ block: 'end' });
       inputRef.current?.focus();
