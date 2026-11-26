@@ -2,46 +2,34 @@ import { useState } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import Navbar from '../components/common/Navbar.jsx';
 import ChatWidget from '../components/chat/ChatWidget.jsx';
-import { 
-  Ticket, 
-  ShieldCheck, 
-  CreditCard, 
-  Headphones, 
-  Mail, 
-  Phone, 
-  MapPin, 
+import {
+  Ticket,
+  ShieldCheck,
+  CreditCard,
+  Headphones,
+  Mail,
+  Phone,
+  MapPin,
   ExternalLink,
   Sparkles,
   Heart,
   Bot,
-  Send,
-  CheckCircle2,
   ChevronUp,
   FileText,
   RotateCcw
 } from 'lucide-react';
-import { 
-  RefundPolicyModal, 
-  TermsModal, 
-  VenuesModal, 
-  PaymentInfoModal 
+import {
+  RefundPolicyModal,
+  TermsModal,
+  VenuesModal,
+  PaymentInfoModal
 } from '../components/common/FooterModals.jsx';
 
 export default function MainLayout() {
   const [activeModal, setActiveModal] = useState(null); // 'refund' | 'terms' | 'venues' | 'payment'
-  const [emailSub, setEmailSub] = useState('');
-  const [subToast, setSubToast] = useState('');
 
   const onOpenChat = () => {
     window.dispatchEvent(new CustomEvent('open-chat'));
-  };
-
-  const onSubscribe = (e) => {
-    e.preventDefault();
-    if (!emailSub.trim() || !emailSub.includes('@')) return;
-    setSubToast('Cảm ơn bạn đã đăng ký! Ưu đãi mới nhất sẽ được gửi vào email của bạn.');
-    setEmailSub('');
-    setTimeout(() => setSubToast(''), 4000);
   };
 
   const scrollToTop = () => {
@@ -61,21 +49,21 @@ export default function MainLayout() {
       <ChatWidget />
 
       {/* Footer Modals */}
-      <RefundPolicyModal 
-        isOpen={activeModal === 'refund'} 
-        onClose={() => setActiveModal(null)} 
+      <RefundPolicyModal
+        isOpen={activeModal === 'refund'}
+        onClose={() => setActiveModal(null)}
       />
-      <TermsModal 
-        isOpen={activeModal === 'terms'} 
-        onClose={() => setActiveModal(null)} 
+      <TermsModal
+        isOpen={activeModal === 'terms'}
+        onClose={() => setActiveModal(null)}
       />
-      <VenuesModal 
-        isOpen={activeModal === 'venues'} 
-        onClose={() => setActiveModal(null)} 
+      <VenuesModal
+        isOpen={activeModal === 'venues'}
+        onClose={() => setActiveModal(null)}
       />
-      <PaymentInfoModal 
-        isOpen={activeModal === 'payment'} 
-        onClose={() => setActiveModal(null)} 
+      <PaymentInfoModal
+        isOpen={activeModal === 'payment'}
+        onClose={() => setActiveModal(null)}
       />
 
       {/* Footer */}
@@ -96,36 +84,8 @@ export default function MainLayout() {
                 Nền tảng đặt vé xem phim & sự kiện trực tuyến hàng đầu. Trải nghiệm giữ chỗ thời gian thực, thanh toán tự động qua Ví MoMo và nhận vé điện tử tức thì.
               </p>
 
-              {/* Newsletter / Khuyến mãi */}
-              <div className="pt-1 max-w-sm">
-                <div className="text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-accent" />
-                  <span>Đăng ký nhận mã giảm giá & phim hot</span>
-                </div>
-                <form onSubmit={onSubscribe} className="flex gap-2">
-                  <input
-                    type="email"
-                    value={emailSub}
-                    onChange={(e) => setEmailSub(e.target.value)}
-                    placeholder="Nhập email của bạn..."
-                    className="input !py-1.5 !px-3 text-xs flex-1 bg-surface2/80 border-white/10 focus:border-accent"
-                    required
-                  />
-                  <button type="submit" className="btn btn-primary !py-1.5 !px-3 text-xs shrink-0 flex items-center gap-1">
-                    <Send className="h-3.5 w-3.5" />
-                    Đăng ký
-                  </button>
-                </form>
-                {subToast && (
-                  <p className="text-xs text-emerald-400 mt-2 animate-in fade-in flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                    {subToast}
-                  </p>
-                )}
-              </div>
-
               <div className="flex items-center gap-3 pt-1">
-                <button 
+                <button
                   onClick={() => setActiveModal('payment')}
                   className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-colors"
                 >
@@ -152,8 +112,8 @@ export default function MainLayout() {
                   </Link>
                 </li>
                 <li>
-                  <button 
-                    onClick={() => setActiveModal('venues')} 
+                  <button
+                    onClick={() => setActiveModal('venues')}
                     className="hover:text-accent transition-colors flex items-center gap-1.5 py-0.5 text-left"
                   >
                     <MapPin className="h-3.5 w-3.5 text-accent shrink-0" />
@@ -177,7 +137,7 @@ export default function MainLayout() {
                 <li>
                   <a href="tel:19006868" className="flex items-center gap-2 hover:text-accent transition-colors py-0.5">
                     <Phone className="h-3.5 w-3.5 text-accent shrink-0" />
-                    <span>Hotline: <b className="text-slate-200">1900 6868</b></span>
+                    <span>Hotline/Zalo: <b className="text-slate-200">0396100121</b></span>
                   </a>
                 </li>
                 <li>
@@ -187,8 +147,8 @@ export default function MainLayout() {
                   </a>
                 </li>
                 <li>
-                  <button 
-                    onClick={() => setActiveModal('refund')} 
+                  <button
+                    onClick={() => setActiveModal('refund')}
                     className="hover:text-accent transition-colors flex items-center gap-1.5 py-0.5 text-left"
                   >
                     <RotateCcw className="h-3.5 w-3.5 text-accent shrink-0" />
@@ -196,8 +156,8 @@ export default function MainLayout() {
                   </button>
                 </li>
                 <li>
-                  <button 
-                    onClick={() => setActiveModal('terms')} 
+                  <button
+                    onClick={() => setActiveModal('terms')}
                     className="hover:text-accent transition-colors flex items-center gap-1.5 py-0.5 text-left"
                   >
                     <FileText className="h-3.5 w-3.5 text-accent shrink-0" />
@@ -205,8 +165,8 @@ export default function MainLayout() {
                   </button>
                 </li>
                 <li className="pt-1">
-                  <button 
-                    onClick={onOpenChat} 
+                  <button
+                    onClick={onOpenChat}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-accent/15 border border-accent/30 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent hover:text-white transition-all shadow-sm"
                   >
                     <Bot className="h-3.5 w-3.5" />
@@ -222,21 +182,21 @@ export default function MainLayout() {
                 Đối tác thanh toán
               </h4>
               <div className="flex flex-wrap gap-2 text-xs">
-                <button 
+                <button
                   onClick={() => setActiveModal('payment')}
                   title="Xem quy định thanh toán MoMo"
                   className="px-2.5 py-1 rounded-lg bg-pink-500/10 border border-pink-500/30 font-bold text-pink-400 hover:bg-pink-500/20 transition-colors"
                 >
                   Ví MoMo
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveModal('payment')}
                   title="Xem danh sách ngân hàng ATM nội địa"
                   className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 font-bold text-blue-400 hover:bg-white/10 transition-colors"
                 >
                   Thẻ ATM Nội Địa
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveModal('payment')}
                   title="Xem quy định thẻ quốc tế"
                   className="px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 font-bold text-amber-400 hover:bg-white/10 transition-colors"
@@ -266,8 +226,8 @@ export default function MainLayout() {
             <div className="flex items-center gap-4">
               <span>Được xây dựng với React, Node.js & SQL Server</span>
               <span>•</span>
-              <button 
-                onClick={scrollToTop} 
+              <button
+                onClick={scrollToTop}
                 className="hover:text-accent flex items-center gap-1 transition-colors text-slate-300 font-medium"
                 title="Cuộn lên đầu trang"
               >
