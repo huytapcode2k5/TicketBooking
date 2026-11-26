@@ -1,5 +1,6 @@
 import { Outlet, Link } from 'react-router-dom';
 import Navbar from '../components/common/Navbar.jsx';
+import ChatWidget from '../components/chat/ChatWidget.jsx';
 import { 
   Ticket, 
   ShieldCheck, 
@@ -23,6 +24,8 @@ export default function MainLayout() {
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <Outlet />
       </main>
+
+      <ChatWidget />
 
       {/* Footer */}
       <footer className="mt-16 border-t border-white/[0.08] bg-surface/70 backdrop-blur-xl">
