@@ -46,6 +46,49 @@ Tài khoản mẫu: `admin@ticket.vn / Admin@123`, `staff@ticket.vn / Staff@123`
 
 Gợi ý demo: đặt `HOLD_MINUTES=1` trong `server/.env` để thử cảnh hết hạn giữ chỗ nhanh.
 
+## Lấy code mới của nhóm (pull)
+
+Chạy trong thư mục dự án:
+
+```bash
+git switch dev
+git pull
+```
+
+Sau mỗi lần pull, kiểm tra 4 việc (bỏ qua việc nào không có thay đổi):
+
+1. **Thư viện:** nếu `server/package.json` hoặc `client/package.json` đổi thì chạy `npm install` trong thư mục đó.
+2. **Database:** nếu `database/` có file `migration_*.sql` mới thì chạy file đó (các file migration chạy lại nhiều lần không sao):
+   ```bash
+   sqlcmd -S . -E -C -I -f 65001 -d TicketBookingDB -i database\ten_file.sql
+   ```
+   Hoặc mở file trong SSMS, chọn database `TicketBookingDB` rồi bấm Execute.
+3. **Cấu hình:** so `server/.env.example` với `server/.env` của mình, dòng nào mới thì chép sang `.env` và điền giá trị. Không commit file `.env`.
+4. **Khởi động lại** server (`npm run dev`) để nhận code và cấu hình mới.
+
+Làm việc mới thì tạo nhánh từ `dev`: `git switch -c feature/<mã-việc>-<mô-tả>`, xong mở Pull Request vào `dev`.
+
+## Trợ lý AI (chatbot Gemini)
+
+Ô chat **"Hỏi trợ lý"** ở góc phải các trang khách. Bot trả lời từ dữ liệu thật (sự kiện, suất, ghế trống, giá, mã giảm giá, combo) và gợi ý link đặt vé; bot chỉ đọc dữ liệu, không giữ ghế hay tạo đơn.
+
+Mỗi người tự tạo key **miễn phí** của Google (không cần thẻ):
+
+1. Vào https://aistudio.google.com, đăng nhập bằng Gmail.
+2. Bấm biểu tượng **chìa khóa** ở góc dưới bên trái (trang API keys) → **Create API key** → đặt tên (VD `TicketHub`), chọn **Default Gemini Project** → **Create key** → **Copy**.
+3. Thêm vào cuối `server/.env`:
+   ```
+   GEMINI_API_KEY=key-vừa-copy
+   GEMINI_MODEL=gemini-3.5-flash-lite
+   ```
+4. Trong `server` chạy `npm install` (lần đầu, để cài `@google/genai`) rồi khởi động lại server.
+
+Lưu ý:
+- Key là bí mật: chỉ để trong `server/.env`, không dán vào code, README hay nhóm chat.
+- Gói miễn phí giới hạn số lượt mỗi ngày (tính theo project). Hết lượt thì bot báo "đang quá tải"; đợi qua ngày hoặc đổi `GEMINI_MODEL` sang model khác trong AI Studio (VD `gemini-4-hydrogen`).
+- Chưa có key thì ô chat báo "Trợ lý AI chưa được cấu hình", phần còn lại của web vẫn chạy bình thường.
+- Server giới hạn mỗi IP 15 câu / 5 phút để giữ lượt miễn phí.
+
 ## 3. Phần nào đã làm, phần nào còn lại
 
 | Đã có (chạy được khi có SQL Server) | Còn lại để nhóm làm |
