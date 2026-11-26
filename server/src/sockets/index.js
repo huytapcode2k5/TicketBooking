@@ -4,6 +4,7 @@ import { verifyToken } from '../utils/jwt.js';
 import { setIO } from './io.js';
 import { registerSeatSocket } from './seat.socket.js';
 import { registerPaymentSocket } from './payment.socket.js';
+import { registerPresenceSocket } from './presence.socket.js';
 
 export function initSockets(httpServer) {
   const io = new Server(httpServer, { cors: { origin: env.clientUrl, credentials: true } });
@@ -21,6 +22,7 @@ export function initSockets(httpServer) {
   io.on('connection', (socket) => {
     registerSeatSocket(io, socket);
     registerPaymentSocket(io, socket);
+    registerPresenceSocket(io, socket);
   });
   setIO(io);
   return io;
