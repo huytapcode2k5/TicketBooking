@@ -4,6 +4,7 @@ import { validate } from '../middlewares/validate.js';
 import { upload } from '../middlewares/upload.js';
 import * as a from '../controllers/admin.controller.js';
 import * as s from '../controllers/sales.controller.js';
+import * as o from '../controllers/orders.controller.js';
 import { paymentsNeedReview } from '../controllers/payments.controller.js';
 import { refundOrder } from '../controllers/tickets.controller.js';
 
@@ -43,6 +44,8 @@ r.get('/stats/revenue-by-day', s.revenueByDay);
 r.get('/stats/revenue-by-movie', s.revenueByMovie);
 r.get('/stats/fill-rate', s.fillRateByShowtime);
 r.get('/orders/recent', s.recentOrders);
+r.get('/orders', o.adminListOrders);
+r.get('/orders/:id', o.getOrder);
 
 // C: đối soát + hoàn tiền
 r.get('/payments/review', paymentsNeedReview);

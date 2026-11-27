@@ -9,7 +9,7 @@ const server = http.createServer(app);
 initSockets(server);
 startExpireHoldsJob();
 
-server.listen(env.port, async () => {
+server.listen(env.port, '0.0.0.0', async () => {
   console.log(`TicketHub API: http://localhost:${env.port}/api/health`);
   try {
     await getPool();

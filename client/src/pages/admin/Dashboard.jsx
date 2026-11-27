@@ -85,159 +85,164 @@ export default function Dashboard() {
 
   const statCards = [
     {
+      label: 'Tổng doanh thu',
+      value: vnd(d.s.totalRevenue ?? 0),
+      sub: 'Tích lũy toàn thời gian',
+      icon: DollarSign,
+    },
+    {
       label: 'Doanh thu hôm nay',
       value: vnd(d.s.revenueToday),
-      icon: DollarSign,
-      color: 'text-emerald-400',
-      bgColor: 'bg-emerald-500/10 border-emerald-500/20',
+      sub: 'Đơn hàng đã thanh toán',
+      icon: TrendingUp,
     },
     {
       label: 'Vé bán ra hôm nay',
       value: d.s.ticketsToday,
+      sub: 'Suất chiếu trong ngày',
       icon: Ticket,
-      color: 'text-accent',
-      bgColor: 'bg-accent/10 border-accent/20',
     },
     {
       label: 'Đơn chờ thanh toán',
       value: d.s.pendingOrders,
+      sub: 'Đang giữ chỗ',
       icon: Clock,
-      color: 'text-amber-400',
-      bgColor: 'bg-amber-400/10 border-amber-400/20',
+      highlight: d.s.pendingOrders > 0,
     },
     {
-      label: 'Tỷ lệ lấp đầy (suất sắp tới)',
+      label: 'Tỷ lệ lấp đầy ghế',
       value: `${d.s.fillRate}%`,
-      icon: TrendingUp,
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-500/10 border-blue-500/20',
+      sub: 'Suất chiếu sắp tới',
+      icon: Receipt,
     },
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Title */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pb-1">
         <div>
-          <div className="flex items-center gap-2 text-accent font-bold text-xs uppercase tracking-wider mb-1">
-            <LayoutDashboard className="h-4 w-4" />
-            <span>Trung tâm quản trị</span>
+          <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1">
+            <LayoutDashboard className="h-3.5 w-3.5 text-accent" />
+            <span>Khu vực quản trị</span>
           </div>
-          <h1 className="font-display font-black text-2xl sm:text-3xl text-white">
-            Tổng quan Dashboard
+          <h1 className="font-display font-bold text-2xl text-white">
+            Tổng quan hệ thống
           </h1>
         </div>
       </div>
 
       {/* Metric Cards */}
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
-        {statCards.map(({ label, value, icon: Icon, color, bgColor }) => (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        {statCards.map(({ label, value, sub, icon: Icon, highlight }) => (
           <div
             key={label}
-            className="card p-5 sm:p-6 bg-surface/90 border-white/10 hover:border-white/20 transition-all"
+            className="rounded-xl p-5 bg-surface2/30 border border-white/5 hover:border-white/10 transition-colors"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-medium text-slate-300">
                 {label}
               </span>
-              <div className={`h-9 w-9 rounded-xl flex items-center justify-center border ${bgColor}`}>
-                <Icon className={`h-4 w-4 ${color}`} />
-              </div>
+              <Icon className="h-4 w-4 text-slate-500" />
             </div>
-            <div className="mt-3 font-mono text-2xl sm:text-3xl font-black text-white">
+            <div className="mt-2.5 font-mono text-2xl font-bold text-white tracking-tight">
               {value}
+            </div>
+            <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-1.5">
+              {highlight && <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />}
+              <span>{sub}</span>
             </div>
           </div>
         ))}
       </div>
 
       {/* Analytics Charts */}
-      <div className="grid xl:grid-cols-2 gap-6">
-        <div className="card p-6 bg-surface/90 border-white/10 space-y-4">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h2 className="font-display font-bold text-base text-white">Doanh thu 7 ngày qua</h2>
-            <span className="text-xs text-slate-400">Đơn vị: VNĐ</span>
+      <div className="grid xl:grid-cols-2 gap-5">
+        <div className="rounded-xl p-5 bg-surface2/30 border border-white/5 space-y-4">
+          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <h2 className="font-semibold text-sm text-white">Doanh thu 7 ngày qua</h2>
+            <span className="text-[11px] text-slate-500">Đơn vị: VNĐ</span>
           </div>
-          <ResponsiveContainer width="100%" height={270}>
+          <ResponsiveContainer width="100%" height={260}>
             <LineChart data={d.day}>
-              <CartesianGrid stroke="#ffffff10" strokeDasharray="3 3" />
-              <XAxis dataKey="label" stroke="#64748b" textAnchor="end" fontSize={11} />
-              <YAxis stroke="#64748b" tickFormatter={(v) => `${v / 1000}k`} fontSize={11} />
+              <CartesianGrid stroke="#ffffff08" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" stroke="#64748b" textAnchor="end" fontSize={11} tickLine={false} />
+              <YAxis stroke="#64748b" tickFormatter={(v) => `${v / 1000}k`} fontSize={11} tickLine={false} axisLine={false} />
               <Tooltip
                 formatter={(v) => [vnd(v), 'Doanh thu']}
                 contentStyle={{
-                  background: '#11172A',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '8px',
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
                 }}
               />
               <Line
                 type="monotone"
                 dataKey="revenue"
-                stroke="#FF4564"
-                strokeWidth={3}
-                dot={{ fill: '#FF4564', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, fill: '#fff', stroke: '#FF4564', strokeWidth: 3 }}
+                stroke="#F43F5E"
+                strokeWidth={2}
+                dot={{ fill: '#F43F5E', strokeWidth: 1, r: 3 }}
+                activeDot={{ r: 5, fill: '#fff', stroke: '#F43F5E', strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="card p-6 bg-surface/90 border-white/10 space-y-4">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h2 className="font-display font-bold text-base text-white">Vé bán theo sự kiện</h2>
-            <span className="text-xs text-slate-400">Số lượng vé</span>
+        <div className="rounded-xl p-5 bg-surface2/30 border border-white/5 space-y-4">
+          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <h2 className="font-semibold text-sm text-white">Vé bán theo sự kiện</h2>
+            <span className="text-[11px] text-slate-500">Số lượng vé</span>
           </div>
-          <ResponsiveContainer width="100%" height={270}>
+          <ResponsiveContainer width="100%" height={260}>
             <BarChart data={d.movie}>
-              <CartesianGrid stroke="#ffffff10" strokeDasharray="3 3" />
-              <XAxis dataKey="title" stroke="#64748b" tick={false} />
-              <YAxis stroke="#64748b" allowDecimals={false} fontSize={11} />
+              <CartesianGrid stroke="#ffffff08" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="title" stroke="#64748b" tick={false} axisLine={false} />
+              <YAxis stroke="#64748b" allowDecimals={false} fontSize={11} tickLine={false} axisLine={false} />
               <Tooltip
                 contentStyle={{
-                  background: '#11172A',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '8px',
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
                 }}
               />
-              <Bar dataKey="ticketsSold" name="Số vé bán" fill="#FBBF24" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="ticketsSold" name="Số vé bán" fill="#38BDF8" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Fill rate per upcoming showtime */}
-      <div className="card p-6 bg-surface/90 border-white/10 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
-          <h2 className="font-display font-bold text-base text-white">Tỷ lệ lấp đầy các suất sắp tới (đầy nhất trước)</h2>
+      <div className="rounded-xl p-5 bg-surface2/30 border border-white/5 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
+          <h2 className="font-semibold text-sm text-white">Tỷ lệ lấp đầy suất chiếu sắp tới</h2>
           <div className="flex gap-3 text-[11px] text-slate-400">
-            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-[#FF4564]" /> ≥ 90%</span>
-            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-[#FBBF24]" /> 50–89%</span>
-            <span className="flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-[#60A5FA]" /> &lt; 50%</span>
+            <span className="flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-[#F43F5E]" /> ≥ 90%</span>
+            <span className="flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-[#FBBF24]" /> 50–89%</span>
+            <span className="flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-[#60A5FA]" /> &lt; 50%</span>
           </div>
         </div>
         {d.fill.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-400">Chưa có suất nào sắp diễn ra.</p>
+          <p className="py-8 text-center text-xs text-slate-500">Chưa có suất nào sắp diễn ra.</p>
         ) : (
           <ResponsiveContainer width="100%" height={Math.max(160, d.fill.length * 34 + 30)}>
             <BarChart data={d.fill} layout="vertical" margin={{ left: 8, right: 24 }}>
-              <CartesianGrid stroke="#ffffff10" strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke="#64748b" fontSize={11} />
+              <CartesianGrid stroke="#ffffff08" strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
               <YAxis type="category" dataKey="label" width={260} stroke="#64748b" fontSize={11} tickLine={false} />
               <Tooltip
-                cursor={{ fill: '#ffffff08' }}
+                cursor={{ fill: '#ffffff05' }}
                 formatter={(v, _n, p) => [`${v}% (${p.payload.soldSeats}/${p.payload.totalSeats} ghế)`, 'Lấp đầy']}
                 labelFormatter={(_l, p) => p?.[0]?.payload?.movieTitle ?? ''}
                 contentStyle={{
-                  background: '#11172A',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '8px',
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
                 }}
               />
-              <Bar dataKey="fillRate" radius={[0, 6, 6, 0]} barSize={18}>
+              <Bar dataKey="fillRate" radius={[0, 4, 4, 0]} barSize={16}>
                 {d.fill.map((x) => (
                   <Cell key={x.showtimeId} fill={fillColor(x.fillRate)} />
                 ))}
@@ -248,41 +253,41 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Orders Table */}
-      <div className="card p-6 bg-surface/90 border-white/10 overflow-hidden space-y-4">
-        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+      <div className="rounded-xl p-5 bg-surface2/30 border border-white/5 space-y-4">
+        <div className="flex items-center justify-between border-b border-white/5 pb-3">
           <div className="flex items-center gap-2">
             <Receipt className="h-4 w-4 text-accent" />
-            <h2 className="font-display font-bold text-base text-white">Đơn hàng mới nhất</h2>
+            <h2 className="font-semibold text-sm text-white">Đơn hàng mới nhất</h2>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-xs sm:text-sm text-left">
-            <thead className="text-xs uppercase font-bold text-slate-400 border-b border-white/10">
+          <table className="w-full text-xs text-left">
+            <thead className="text-[11px] font-medium text-slate-400 border-b border-white/5">
               <tr>
-                <th className="py-3 px-2">Mã đơn</th>
-                <th className="py-3 px-2">Khách hàng</th>
-                <th className="py-3 px-2">Tổng tiền</th>
-                <th className="py-3 px-2">Trạng thái</th>
-                <th className="py-3 px-2">Thời gian đặt</th>
+                <th className="py-2.5 px-3">Mã đơn</th>
+                <th className="py-2.5 px-3">Khách hàng</th>
+                <th className="py-2.5 px-3">Tổng tiền</th>
+                <th className="py-2.5 px-3">Trạng thái</th>
+                <th className="py-2.5 px-3">Thời gian</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {d.orders.map((o) => (
-                <tr key={o.orderId} className="hover:bg-white/[0.03] transition-colors">
-                  <td className="py-3 px-2 font-mono font-bold text-slate-200">#{o.orderCode}</td>
-                  <td className="py-3 px-2 font-medium text-white">{o.fullName}</td>
-                  <td className="py-3 px-2 font-mono font-bold text-amber-300">{vnd(o.totalAmount)}</td>
-                  <td className="py-3 px-2">
+                <tr key={o.orderId} className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-2.5 px-3 font-mono font-medium text-slate-200">#{o.orderCode}</td>
+                  <td className="py-2.5 px-3 font-medium text-white">{o.fullName}</td>
+                  <td className="py-2.5 px-3 font-mono font-medium text-slate-200">{vnd(o.totalAmount)}</td>
+                  <td className="py-2.5 px-3">
                     <span
-                      className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                        STATUS[o.status]?.[1] || 'bg-white/10 text-slate-300'
+                      className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${
+                        STATUS[o.status]?.[1] || 'bg-white/5 text-slate-300'
                       }`}
                     >
                       {STATUS[o.status]?.[0] ?? o.status}
                     </span>
                   </td>
-                  <td className="py-3 px-2 text-slate-400 text-xs">{fmtDateTime(o.createdAt)}</td>
+                  <td className="py-2.5 px-3 text-slate-500 text-[11px]">{fmtDateTime(o.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

@@ -28,7 +28,7 @@ export default function PaymentReview() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <div className="flex items-center gap-2 text-accent font-bold text-xs uppercase tracking-wider mb-1">
+        <div className="flex items-center gap-2 text-accent font-semibold text-xs mb-1">
           <Receipt className="h-4 w-4" />
           <span>Tài chính & Kế toán</span>
         </div>
@@ -48,13 +48,13 @@ export default function PaymentReview() {
               Không có giao dịch nào cần xử lý
             </h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Tất cả các khoản thanh toán qua cổng PayOS đều khớp 100% với đơn hàng.
+              Tất cả các khoản thanh toán qua cổng MoMo đều khớp 100% với đơn hàng.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs sm:text-sm text-left">
-              <thead className="text-xs uppercase font-bold text-slate-400 border-b border-white/10">
+              <thead className="text-xs font-semibold text-slate-400 border-b border-white/10">
                 <tr>
                   <th className="py-3 px-3">Mã đơn</th>
                   <th className="py-3 px-3">Trạng thái đơn</th>

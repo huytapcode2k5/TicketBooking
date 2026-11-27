@@ -16,7 +16,8 @@ import {
   Star, 
   ChevronDown,
   Clock,
-  Film
+  Film,
+  ArrowRight
 } from 'lucide-react';
 
 const STATUS_TABS = [
@@ -27,9 +28,9 @@ const STATUS_TABS = [
 const LIMIT = 12;
 
 export default function Home() {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const q = params.get('q') || '';
-  const [status, setStatus] = useState('NOW_SHOWING');
+  const [status, setStatus] = useState(params.get('status') || (q ? '' : 'NOW_SHOWING'));
   const [genreId, setGenreId] = useState('');
   const [cinemaId, setCinemaId] = useState('');
   const [genres, setGenres] = useState([]);
@@ -44,12 +45,23 @@ export default function Home() {
   useEffect(() => {
     api.get('/genres').then((r) => setGenres(r.data)).catch(() => {});
     api.get('/cinemas').then((r) => setCinemas(r.data)).catch(() => {});
-    api.get('/movies?status=NOW_SHOWING&limit=1').then((r) => setFeatured(r.data.items[0] ?? null)).catch(() => {});
+    // Tự động lấy phim/sự kiện tiêu điểm tuần được đặt nhiều vé nhất
+    api.get('/movies/featured').then((r) => setFeatured(r.data)).catch(() => {});
   }, []);
 
   useEffect(() => {
     setPage(1);
-  }, [q, status, genreId, cinemaId]);
+    const paramStatus = params.get('status');
+    const paramCinema = params.get('cinemaId');
+    if (paramStatus !== null) {
+      setStatus(paramStatus);
+    } else if (q) {
+      setStatus('');
+    }
+    if (paramCinema !== null) {
+      setCinemaId(paramCinema);
+    }
+  }, [q, params]);
 
   useEffect(() => {
     setLoading(true);
@@ -74,60 +86,70 @@ export default function Home() {
       {/* Cinematic Hero Spotlight */}
       {featured && !q && (
         <section className="relative overflow-hidden rounded-3xl min-h-[380px] sm:min-h-[440px] flex items-end border border-white/10 shadow-2xl bg-surface group">
-          {/* Background Poster/Banner */}
+          {/* Background Poster/Banner - HD Sharp Rendering */}
           <img
             src={imgUrl(featured.bannerUrl || featured.posterUrl)}
             alt={featured.title}
-            className="absolute inset-0 h-full w-full object-cover object-center scale-100 group-hover:scale-105 transition-transform duration-700 opacity-45"
+            className="absolute inset-0 h-full w-full object-cover object-center scale-100 group-hover:scale-105 transition-transform duration-700 opacity-80 brightness-[1.05] contrast-[1.05]"
           />
 
-          {/* Vignette Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/75 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/60 to-transparent" />
+          {/* Vignette Gradients - Giữ sáng rõ nét ảnh, chỉ làm mờ nhẹ phần chữ */}
+          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-bg via-bg/40 to-transparent" />
 
           {/* Hero Content */}
-          <div className="relative p-6 sm:p-12 max-w-3xl space-y-4">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-accent to-rose-600 px-3 py-1 text-xs font-bold text-white shadow-glow-sm">
-                <Sparkles className="h-3 w-3" />
-                <span>Tiêu điểm tuần này</span>
+          <div className="relative p-6 sm:p-10 max-w-2xl space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 backdrop-blur-md border border-white/15 px-2.5 py-1 text-xs font-medium text-white">
+                <Flame className="h-3.5 w-3.5 text-accent" />
+                <span>Tiêu điểm tuần</span>
+                {featured.weeklyBookedCount > 0 ? (
+                  <span className="text-slate-300">
+                    · {featured.weeklyBookedCount} vé tuần này
+                  </span>
+                ) : featured.totalBookedCount > 0 ? (
+                  <span className="text-slate-300">
+                    · {featured.totalBookedCount} vé đã đặt
+                  </span>
+                ) : null}
               </span>
 
               {featured.ageRating && (
-                <span className="rounded-lg bg-black/60 backdrop-blur-md px-2.5 py-0.5 text-xs font-bold text-amber-300 border border-amber-400/30">
+                <span className="rounded-lg bg-black/60 backdrop-blur-md px-2 py-0.5 text-xs font-semibold text-slate-200 border border-white/10">
                   {featured.ageRating}
                 </span>
               )}
 
               {featured.durationMin && (
-                <span className="flex items-center gap-1 text-xs text-slate-300 bg-white/10 backdrop-blur-md px-2.5 py-0.5 rounded-lg border border-white/10">
+                <span className="flex items-center gap-1 text-xs text-slate-300 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-lg border border-white/10">
                   <Clock className="h-3 w-3 text-slate-400" />
                   <span>{featured.durationMin} phút</span>
                 </span>
               )}
             </div>
 
-            <h1 className="font-display font-black text-3xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-tight drop-shadow-md">
+            <h1 className="font-display font-black text-3xl sm:text-5xl text-white tracking-tight leading-tight">
               {featured.title}
             </h1>
 
-            <p className="text-sm sm:text-base text-slate-300 line-clamp-2 leading-relaxed max-w-2xl font-normal">
+            <p className="text-sm sm:text-base text-slate-300 line-clamp-2 leading-relaxed max-w-xl font-normal">
               {featured.description || featured.genres || 'Trải nghiệm suất chiếu điện ảnh mãn nhãn với công nghệ âm thanh vòm sống động.'}
             </p>
 
             <div className="pt-2 flex flex-wrap items-center gap-3">
               <Link
                 to={`/events/${featured.movieId}`}
-                className="btn-primary !px-6 !py-3 text-base shadow-glow flex items-center gap-2 group/btn"
+                className="btn-primary !px-6 !py-3 text-sm font-semibold inline-flex items-center gap-2.5 rounded-xl shadow-sm active:scale-[0.98]"
               >
-                <Ticket className="h-5 w-5 transition-transform group-hover/btn:rotate-12" />
+                <Ticket className="h-4 w-4" />
                 <span>Đặt vé ngay</span>
+                <ArrowRight className="h-4 w-4 opacity-70" />
               </Link>
 
               {featured.minPrice != null && (
-                <div className="px-4 py-2.5 rounded-xl bg-white/[0.08] backdrop-blur-md border border-white/10 text-xs sm:text-sm">
-                  <span className="text-slate-400">Giá vé từ: </span>
-                  <span className="font-mono font-bold text-amber-300 text-sm sm:text-base">
+                <div className="px-3.5 py-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-xs sm:text-sm flex items-center gap-2 text-slate-300">
+                  <span>Giá từ</span>
+                  <span className="font-mono font-semibold text-white">
                     {vnd(featured.minPrice)}
                   </span>
                 </div>
@@ -140,22 +162,22 @@ export default function Home() {
       {/* Filter and Browse Section */}
       <section className="space-y-6">
         {/* Status Tabs & Cinema Selection Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-2 rounded-2xl bg-surface/80 border border-white/10 backdrop-blur-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 rounded-xl bg-surface2/50 border border-white/5">
           {/* Status Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1">
             {STATUS_TABS.map(({ val, label, icon: Icon }) => {
               const active = status === val;
               return (
                 <button
                   key={label}
                   onClick={() => setStatus(val)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 select-none ${
+                  className={`flex items-center gap-2 text-xs sm:text-sm py-2 px-3.5 rounded-lg transition-colors select-none font-medium ${
                     active
-                      ? 'bg-gradient-to-r from-accent to-rose-600 text-white shadow-glow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                      ? 'bg-white/10 text-white border border-white/10 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
                   }`}
                 >
-                  <Icon className={`h-4 w-4 ${active ? 'text-white' : 'text-slate-400'}`} />
+                  <Icon className={`h-4 w-4 ${active ? 'text-accent' : 'text-slate-500'}`} />
                   <span>{label}</span>
                 </button>
               );
@@ -164,9 +186,9 @@ export default function Home() {
 
           {/* Cinema Filter Dropdown */}
           <div className="relative min-w-[200px]">
-            <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-accent pointer-events-none" />
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
             <select
-              className="input !pl-10 !py-2 text-xs sm:text-sm appearance-none cursor-pointer pr-10"
+              className="input !pl-9 !py-2 text-xs sm:text-sm appearance-none cursor-pointer pr-8 bg-surface/90 border-white/10 text-slate-200 rounded-lg"
               value={cinemaId}
               onChange={(e) => setCinemaId(e.target.value)}
             >
@@ -177,7 +199,7 @@ export default function Home() {
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
           </div>
         </div>
 
@@ -206,11 +228,23 @@ export default function Home() {
 
         {/* Search status notification */}
         {q && (
-          <div className="flex items-center gap-2 text-sm text-slate-300 px-1">
-            <Search className="h-4 w-4 text-accent" />
-            <span>
-              Kết quả tìm kiếm cho: <b className="text-white font-bold">"{q}"</b> ({total} phim & sự kiện)
-            </span>
+          <div className="flex items-center justify-between gap-3 text-sm text-slate-300 px-4 py-2.5 rounded-xl bg-surface2/60 border border-white/5 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-accent shrink-0" />
+              <span>
+                Kết quả tìm kiếm cho: <b className="text-white font-bold">"{q}"</b> ({total} phim & sự kiện)
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                const next = new URLSearchParams(params);
+                next.delete('q');
+                setParams(next);
+              }}
+              className="text-xs text-accent hover:text-accent-hover underline cursor-pointer shrink-0"
+            >
+              Xóa tìm kiếm
+            </button>
           </div>
         )}
 

@@ -52,6 +52,11 @@ export default function Booking() {
     setPending(r.data);
   }, [id, user]);
 
+  // Luôn đảm bảo khi vào trang Chọn ghế thì màn hình ở trên cùng
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [id]);
+
   useEffect(() => {
     api.get(`/showtimes/${id}`).then((r) => setShowtime(r.data)).catch((e) => setError(e.message));
     loadSeats().catch((e) => setError(e.message));
@@ -198,7 +203,7 @@ export default function Booking() {
       <aside className="card p-6 sm:p-7 space-y-6 lg:sticky lg:top-24 border-white/10 shadow-2xl bg-surface/90">
         {showtime && (
           <div className="space-y-3 border-b border-white/10 pb-5">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 border border-accent/30 px-3 py-0.5 text-[11px] font-bold text-accent uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 border border-accent/30 px-3 py-0.5 text-[11px] font-semibold text-accent">
               <Film className="h-3 w-3" />
               <span>Suất chiếu</span>
             </span>
@@ -231,7 +236,7 @@ export default function Booking() {
 
         {/* Selected Seats List */}
         <div>
-          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+          <div className="flex items-center justify-between text-xs font-medium text-slate-400 mb-3">
             <span>Ghế đã chọn ({chosen.length}/8)</span>
             {chosen.length > 0 && <span className="text-accent text-[11px] font-medium">Tối đa 8 ghế</span>}
           </div>
@@ -270,7 +275,7 @@ export default function Booking() {
         {/* Total Cost Calculation */}
         <div className="border-t border-white/10 pt-4 space-y-2">
           <div className="flex items-baseline justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tạm tính:</span>
+            <span className="text-xs font-medium text-slate-400">Tạm tính:</span>
             <span className="font-mono text-2xl font-black text-amber-300">
               {vnd(total)}
             </span>
@@ -284,7 +289,7 @@ export default function Booking() {
 
         {/* Checkout Button */}
         <button
-          className="btn-primary w-full !py-3.5 text-base shadow-glow flex items-center justify-center gap-2"
+          className="btn-primary w-full !py-3.5 text-base flex items-center justify-center gap-2"
           disabled={!selected.length || busy || left === 0}
           onClick={pending ? () => navigate(`/payment/${pending.orderId}`) : next}
         >

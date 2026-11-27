@@ -3,6 +3,8 @@ import { api } from '../../api/axios.js';
 import Spinner from '../../components/common/Spinner.jsx';
 import { vnd, fmtDateTime, imgUrl } from '../../utils/format.js';
 import { TicketPercent, Popcorn, Plus, Pencil, Power, X, AlertCircle, CheckCircle2, Upload } from 'lucide-react';
+import { useAdminPresence } from '../../hooks/useAdminPresence.js';
+import { AdminEditingBadge, AdminEditingAlert } from '../../components/admin/AdminPresence.jsx';
 
 /** B6 – Quản lý mã giảm giá và combo (bắp nước). Không xóa cứng vì đơn cũ còn tham chiếu, chỉ bật/tắt. */
 export default function AdminCoupons() {
@@ -12,6 +14,8 @@ export default function AdminCoupons() {
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
   const [editing, setEditing] = useState(null); // { kind: 'coupon' | 'product', row: object | null }
+
+  const { startEdit, stopEdit, isLockedByOther, getEditor } = useAdminPresence();
 
   const load = () =>
     Promise.all([api.get('/admin/coupons'), api.get('/admin/products')])
@@ -56,7 +60,7 @@ export default function AdminCoupons() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-accent font-bold text-xs uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-accent font-semibold text-xs mb-1">
             <TicketPercent className="h-4 w-4" />
             <span>Bán hàng</span>
           </div>
@@ -84,14 +88,48 @@ export default function AdminCoupons() {
 
       <div className="card p-4 sm:p-6 bg-surface/90 border-white/10 shadow-2xl">
         {tab === 'coupons' ? (
-          <CouponTable rows={coupons} onEdit={(row) => setEditing({ kind: 'coupon', row })} onToggle={(row) => toggle('coupon', row)} />
+          <CouponTable
+            rows={coupons}
+            onEdit={(row) => setEditing({ kind: 'coupon', row })}
+            onToggle={(row) => toggle('coupon', row)}
+            getEditor={getEditor}
+          />
         ) : (
-          <ProductTable rows={products} onEdit={(row) => setEditing({ kind: 'product', row })} onToggle={(row) => toggle('product', row)} />
+          <ProductTable
+            rows={products}
+            onEdit={(row) => setEditing({ kind: 'product', row })}
+            onToggle={(row) => toggle('product', row)}
+            getEditor={getEditor}
+          />
         )}
       </div>
 
-      {editing?.kind === 'coupon' && <CouponForm row={editing.row} onClose={() => setEditing(null)} onSaved={onSaved} />}
-      {editing?.kind === 'product' && <ProductForm row={editing.row} onClose={() => setEditing(null)} onSaved={onSaved} />}
+      {editing?.kind === 'coupon' && (
+        <CouponForm
+          row={editing.row}
+          onClose={() => setEditing(null)}
+          onSaved={onSaved}
+          presence={{
+            editor: editing.row ? getEditor('coupon', editing.row.couponId) : null,
+            isLocked: editing.row ? isLockedByOther('coupon', editing.row.couponId) : false,
+            startEdit,
+            stopEdit,
+          }}
+        />
+      )}
+      {editing?.kind === 'product' && (
+        <ProductForm
+          row={editing.row}
+          onClose={() => setEditing(null)}
+          onSaved={onSaved}
+          presence={{
+            editor: editing.row ? getEditor('product', editing.row.productId) : null,
+            isLocked: editing.row ? isLockedByOther('product', editing.row.productId) : false,
+            startEdit,
+            stopEdit,
+          }}
+        />
+      )}
 
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-emerald-500/15 border border-emerald-400/30 px-4 py-3 text-sm text-emerald-300 shadow-2xl">
@@ -118,7 +156,7 @@ const discountText = (c) =>
     ? `${c.discountValue}%${c.maxDiscount ? ` (tối đa ${vnd(c.maxDiscount)})` : ''}`
     : vnd(c.discountValue);
 
-function CouponTable({ rows, onEdit, onToggle }) {
+function CouponTable({ rows, onEdit, onToggle, getEditor }) {
   if (!rows.length) return <Empty text="Chưa có mã giảm giá nào." />;
   return (
     <div className="overflow-x-auto">
@@ -137,10 +175,14 @@ function CouponTable({ rows, onEdit, onToggle }) {
         <tbody className="divide-y divide-white/5">
           {rows.map((c) => {
             const [label, cls] = couponStatus(c);
+            const editor = getEditor?.('coupon', c.couponId);
             return (
               <tr key={c.couponId} className="hover:bg-white/[0.03] transition-colors">
                 <td className="py-3 px-3 min-w-[200px]">
-                  <div className="font-mono font-bold text-slate-100">{c.code}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-slate-100">{c.code}</span>
+                    <AdminEditingBadge editor={editor} />
+                  </div>
                   {c.description && <div className="text-xs text-slate-400 max-w-xs">{c.description}</div>}
                 </td>
                 <td className="py-3 px-3 font-semibold text-accent whitespace-nowrap">{discountText(c)}</td>
@@ -167,7 +209,7 @@ function CouponTable({ rows, onEdit, onToggle }) {
   );
 }
 
-function ProductTable({ rows, onEdit, onToggle }) {
+function ProductTable({ rows, onEdit, onToggle, getEditor }) {
   if (!rows.length) return <Empty text="Chưa có combo nào." />;
   return (
     <div className="overflow-x-auto">
@@ -181,32 +223,38 @@ function ProductTable({ rows, onEdit, onToggle }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-white/5">
-          {rows.map((p) => (
-            <tr key={p.productId} className={`hover:bg-white/[0.03] transition-colors ${p.isActive ? '' : 'opacity-60'}`}>
-              <td className="py-3 px-3">
-                <div className="flex items-center gap-3">
-                  <img src={imgUrl(p.imageUrl)} alt="" className="h-12 w-12 rounded-lg object-cover bg-surface2 flex-shrink-0" />
-                  <div>
-                    <div className="font-semibold text-slate-100">{p.name}</div>
-                    {p.description && <div className="text-xs text-slate-400">{p.description}</div>}
+          {rows.map((p) => {
+            const editor = getEditor?.('product', p.productId);
+            return (
+              <tr key={p.productId} className={`hover:bg-white/[0.03] transition-colors ${p.isActive ? '' : 'opacity-60'}`}>
+                <td className="py-3 px-3">
+                  <div className="flex items-center gap-3">
+                    <img src={imgUrl(p.imageUrl)} alt="" className="h-12 w-12 rounded-lg object-cover bg-surface2 flex-shrink-0" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-slate-100">{p.name}</span>
+                        <AdminEditingBadge editor={editor} />
+                      </div>
+                      {p.description && <div className="text-xs text-slate-400">{p.description}</div>}
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td className="py-3 px-3 font-mono font-bold text-accent whitespace-nowrap">{vnd(p.price)}</td>
-              <td className="py-3 px-3">
-                <span
-                  className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${
-                    p.isActive ? 'bg-emerald-400/15 border-emerald-400/30 text-emerald-300' : 'bg-slate-400/15 border-slate-400/30 text-slate-300'
-                  }`}
-                >
-                  {p.isActive ? 'Đang bán' : 'Ngừng bán'}
-                </span>
-              </td>
-              <td className="py-3 px-3">
-                <RowActions active={p.isActive} onEdit={() => onEdit(p)} onToggle={() => onToggle(p)} />
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className="py-3 px-3 font-mono font-bold text-accent whitespace-nowrap">{vnd(p.price)}</td>
+                <td className="py-3 px-3">
+                  <span
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${
+                      p.isActive ? 'bg-emerald-400/15 border-emerald-400/30 text-emerald-300' : 'bg-slate-400/15 border-slate-400/30 text-slate-300'
+                    }`}
+                  >
+                    {p.isActive ? 'Đang bán' : 'Ngừng bán'}
+                  </span>
+                </td>
+                <td className="py-3 px-3">
+                  <RowActions active={p.isActive} onEdit={() => onEdit(p)} onToggle={() => onToggle(p)} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -240,8 +288,18 @@ const toLocalInput = (d) => {
 };
 const numOrNull = (v) => (v === '' || v == null ? null : Number(v));
 
-function CouponForm({ row, onClose, onSaved }) {
+function CouponForm({ row, onClose, onSaved, presence }) {
   const isNew = !row;
+
+  useEffect(() => {
+    if (!isNew && row?.couponId && presence?.startEdit) {
+      presence.startEdit('coupon', row.couponId);
+      return () => {
+        presence.stopEdit('coupon', row.couponId);
+      };
+    }
+  }, [isNew, row?.couponId, presence]);
+
   const [f, setF] = useState(() =>
     row
       ? {
@@ -292,6 +350,7 @@ function CouponForm({ row, onClose, onSaved }) {
   return (
     <Modal title={isNew ? 'Thêm mã giảm giá' : `Sửa mã ${row.code}`} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
+        {presence && <AdminEditingAlert editor={presence.editor} isLockedByOther={presence.isLocked} />}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Mã">
             <input className="input font-mono uppercase" value={f.code} onChange={set('code')} disabled={!isNew}
@@ -338,8 +397,18 @@ function CouponForm({ row, onClose, onSaved }) {
   );
 }
 
-function ProductForm({ row, onClose, onSaved }) {
+function ProductForm({ row, onClose, onSaved, presence }) {
   const isNew = !row;
+
+  useEffect(() => {
+    if (!isNew && row?.productId && presence?.startEdit) {
+      presence.startEdit('product', row.productId);
+      return () => {
+        presence.stopEdit('product', row.productId);
+      };
+    }
+  }, [isNew, row?.productId, presence]);
+
   const [f, setF] = useState({
     name: row?.name ?? '', description: row?.description ?? '', price: row?.price ?? '', imageUrl: row?.imageUrl ?? '',
   });
@@ -393,6 +462,7 @@ function ProductForm({ row, onClose, onSaved }) {
   return (
     <Modal title={isNew ? 'Thêm combo' : `Sửa combo`} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
+        {presence && <AdminEditingAlert editor={presence.editor} isLockedByOther={presence.isLocked} />}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Tên combo">
             <input className="input" value={f.name} onChange={set('name')} required maxLength={150} placeholder="VD: Combo 2 người" />

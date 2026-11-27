@@ -5,7 +5,7 @@ export default function AdminTodo({ title, owner, api }) {
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="space-y-1">
-        <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+        <span className="text-xs font-semibold text-amber-400">
           Module Quản trị
         </span>
         <h1 className="font-display font-black text-2xl sm:text-3xl text-white">{title}</h1>
@@ -24,7 +24,7 @@ export default function AdminTodo({ title, owner, api }) {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-400 tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
             <Code className="h-4 w-4 text-accent" />
             <span>Endpoint APIs khả dụng:</span>
           </div>

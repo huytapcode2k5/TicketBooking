@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/axios.js';
 import Spinner from '../../components/common/Spinner.jsx';
-import { Modal, Field, Badge, PageHeader, Notice, ImageField, clean, nullify } from '../../components/admin/AdminUI.jsx';
+import { Modal, Field, Badge, PageHeader, Notice, ImageField, clean, nullify, AdminEditingBadge, AdminEditingAlert } from '../../components/admin/AdminUI.jsx';
+import { useAdminPresence } from '../../hooks/useAdminPresence.js';
 import { imgUrl } from '../../utils/format.js';
 
 const STATUS = { NOW_SHOWING: ['Đang mở bán', 'green'], COMING_SOON: ['Sắp mở bán', 'gold'], ENDED: ['Đã kết thúc', 'slate'], HIDDEN: ['Đã ẩn', 'red'] };
 const EMPTY = { title: '', description: '', durationMin: 120, ageRating: 'P', director: '', actors: '', language: '', posterUrl: '', bannerUrl: '', trailerUrl: '', releaseDate: '', status: 'COMING_SOON', genreIds: [] };
 
 export default function AdminEvents() {
+    const { getEditor, isLockedByOther, startEditing, stopEditing } = useAdminPresence();
     const [rows, setRows] = useState(null);
     const [genres, setGenres] = useState([]);
     const [filter, setFilter] = useState({ q: '', status: '' });
@@ -57,7 +59,12 @@ export default function AdminEvents() {
                             {list.map((m) => (
                                 <tr key={m.movieId} className="border-t border-white/5">
                                     <td className="py-2"><img src={imgUrl(m.posterUrl)} alt="" className="h-14 w-10 rounded object-cover" /></td>
-                                    <td className="font-medium">{m.title}</td>
+                                    <td className="font-medium">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span>{m.title}</span>
+                                            <AdminEditingBadge editor={getEditor('movie', m.movieId)} />
+                                        </div>
+                                    </td>
                                     <td>{m.durationMin} phút</td>
                                     <td>{m.ageRating}</td>
                                     <td>{m.releaseDate ? String(m.releaseDate).slice(0, 10) : '—'}</td>
@@ -76,17 +83,32 @@ export default function AdminEvents() {
                 </div>
             )}
 
-            {editing && <EventForm editing={editing} genres={genres} onClose={() => setEditing(null)} onSaved={(msg) => { setEditing(null); flash(msg); load(); }} />}
+            {editing && <EventForm editing={editing} genres={genres} presence={{ getEditor, isLockedByOther, startEditing, stopEditing }} onClose={() => setEditing(null)} onSaved={(msg) => { setEditing(null); flash(msg); load(); }} />}
         </div>
     );
 }
 
-function EventForm({ editing, genres, onClose, onSaved }) {
+function EventForm({ editing, genres, presence, onClose, onSaved }) {
+    const { getEditor, isLockedByOther, startEditing, stopEditing } = presence;
     const [f, setF] = useState(editing.form);
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
     const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
     const toggleGenre = (id) => setF({ ...f, genreIds: f.genreIds.includes(id) ? f.genreIds.filter((x) => x !== id) : [...f.genreIds, id] });
+
+    const lockedByOther = editing.id ? isLockedByOther('movie', editing.id) : false;
+    const currentEditor = editing.id ? getEditor('movie', editing.id) : null;
+
+    useEffect(() => {
+        if (editing.id) {
+            startEditing('movie', editing.id);
+        }
+        return () => {
+            if (editing.id) {
+                stopEditing('movie', editing.id);
+            }
+        };
+    }, [editing.id, startEditing, stopEditing]);
 
     const submit = async (e) => {
         e.preventDefault(); setError(''); setSaving(true);
@@ -94,6 +116,7 @@ function EventForm({ editing, genres, onClose, onSaved }) {
             const body = { ...f, durationMin: Number(f.durationMin) };
             if (editing.id) await api.put(`/admin/movies/${editing.id}`, nullify(body));
             else await api.post('/admin/movies', clean(body));
+            if (editing.id) stopEditing('movie', editing.id);
             onSaved(editing.id ? 'Đã lưu thay đổi.' : 'Đã thêm sự kiện.');
         } catch (err) { setError(err.message); } finally { setSaving(false); }
     };
@@ -101,6 +124,7 @@ function EventForm({ editing, genres, onClose, onSaved }) {
     return (
         <Modal wide title={editing.id ? 'Sửa sự kiện' : 'Thêm sự kiện'} onClose={onClose}>
             <form onSubmit={submit} className="space-y-4">
+                {lockedByOther && <AdminEditingAlert editor={currentEditor} isLockedByOther={lockedByOther} />}
                 {error && <div className="error-box">{error}</div>}
                 <Field label="Tên phim / sự kiện *"><input className="input" required value={f.title} onChange={set('title')} /></Field>
                 <Field label="Mô tả"><textarea className="input" rows={4} value={f.description} onChange={set('description')} /></Field>

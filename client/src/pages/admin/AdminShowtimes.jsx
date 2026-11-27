@@ -3,6 +3,8 @@ import { api } from '../../api/axios.js';
 import Spinner from '../../components/common/Spinner.jsx';
 import { Modal, Field, Badge, PageHeader, Notice, fromInputVN } from '../../components/admin/AdminUI.jsx';
 import { fmtDateTime, vnd } from '../../utils/format.js';
+import { useAdminPresence } from '../../hooks/useAdminPresence.js';
+import { AdminEditingBadge, AdminEditingAlert } from '../../components/admin/AdminPresence.jsx';
 
 export default function AdminShowtimes() {
     const [rows, setRows] = useState(null);
@@ -12,6 +14,8 @@ export default function AdminShowtimes() {
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    const { startEdit, stopEdit, isLockedByOther, getEditor } = useAdminPresence();
 
     const load = useCallback(() => api.get(`/admin/showtimes${movieId ? `?movieId=${movieId}` : ''}`).then((r) => setRows(r.data)).catch((e) => setError(e.message)), [movieId]);
     useEffect(() => { load(); }, [load]);
@@ -34,7 +38,10 @@ export default function AdminShowtimes() {
     return (
         <div className="space-y-5">
             <PageHeader title="Suất chiếu">
-                <button className="btn-primary" onClick={() => setCreating(true)}>+ Thêm suất</button>
+                <div className="flex items-center gap-3">
+                    <AdminEditingBadge editor={getEditor('showtime', 'new')} />
+                    <button className="btn-primary" onClick={() => setCreating(true)}>+ Thêm suất</button>
+                </div>
             </PageHeader>
             <Notice error={error} success={success} />
             <select className="input !w-auto" value={movieId} onChange={(e) => setMovieId(e.target.value)}>
@@ -66,12 +73,32 @@ export default function AdminShowtimes() {
                 </div>
             )}
 
-            {creating && <ShowtimeForm movies={movies} rooms={rooms} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); flash('Đã tạo suất chiếu.'); load(); }} />}
+            {creating && (
+                <ShowtimeForm
+                    movies={movies}
+                    rooms={rooms}
+                    onClose={() => setCreating(false)}
+                    onSaved={() => { setCreating(false); flash('Đã tạo suất chiếu.'); load(); }}
+                    presence={{
+                        editor: getEditor('showtime', 'new'),
+                        isLocked: isLockedByOther('showtime', 'new'),
+                        startEdit,
+                        stopEdit,
+                    }}
+                />
+            )}
         </div>
     );
 }
 
-function ShowtimeForm({ movies, rooms, onClose, onSaved }) {
+function ShowtimeForm({ movies, rooms, onClose, onSaved, presence }) {
+    useEffect(() => {
+        if (presence?.startEdit) {
+            presence.startEdit('showtime', 'new');
+            return () => presence.stopEdit('showtime', 'new');
+        }
+    }, [presence]);
+
     const usable = rooms.filter((r) => r.totalRows > 0 && r.isActive);
     const [f, setF] = useState({ movieId: movies[0]?.movieId ?? '', roomId: usable[0]?.roomId ?? '', startTime: '', normalPrice: 80000, vipPrice: 110000, couplePrice: 200000 });
     const [error, setError] = useState('');
@@ -95,6 +122,7 @@ function ShowtimeForm({ movies, rooms, onClose, onSaved }) {
     return (
         <Modal title="Thêm suất chiếu" onClose={onClose}>
             <form onSubmit={submit} className="space-y-3">
+                {presence && <AdminEditingAlert editor={presence.editor} isLockedByOther={presence.isLocked} />}
                 {error && <div className="error-box">{error}</div>}
                 <Field label="Sự kiện *"><select className="input" required value={f.movieId} onChange={set('movieId')}>{movies.map((m) => <option key={m.movieId} value={m.movieId}>{m.title} ({m.durationMin} phút)</option>)}</select></Field>
                 <Field label="Phòng *" hint={usable.length < rooms.length ? 'Chỉ hiện phòng đã có sơ đồ ghế.' : undefined}>

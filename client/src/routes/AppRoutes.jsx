@@ -22,6 +22,7 @@ import AdminEvents from '../pages/admin/AdminEvents.jsx';
 import AdminVenues from '../pages/admin/AdminVenues.jsx';
 import AdminShowtimes from '../pages/admin/AdminShowtimes.jsx';
 import AdminUsers from '../pages/admin/AdminUsers.jsx';
+import AdminOrders from '../pages/admin/AdminOrders.jsx';
 
 const authed = (el) => <ProtectedRoute>{el}</ProtectedRoute>;
 
@@ -47,6 +48,7 @@ export default function AppRoutes() {
 
       <Route path="/admin" element={<ProtectedRoute roles={['ADMIN']}><AdminLayout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
+        <Route path="orders" element={<AdminOrders />} />
         <Route path="events" element={<AdminEvents />} />
         <Route path="venues" element={<AdminVenues />} />
         <Route path="showtimes" element={<AdminShowtimes />} />

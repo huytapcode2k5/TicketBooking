@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { Ticket, User, Mail, Phone, Lock, ArrowRight, AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Ticket, User, Mail, Phone, Lock, AlertCircle, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import SocialLogin from '../components/auth/SocialLogin.jsx';
 
 export default function Register() {
   const { register } = useAuth();
@@ -10,6 +11,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const submit = async (e) => {
@@ -32,14 +34,14 @@ export default function Register() {
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white shadow-glow-sm group-hover:scale-105 transition-transform">
+            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center text-white shadow-sm transition-transform">
               <Ticket className="h-5 w-5" />
             </div>
             <span className="font-display font-black text-2xl tracking-tight text-white">
               Ticket<span className="text-accent">Hub</span>
             </span>
           </Link>
-          <h1 className="font-display font-extrabold text-2xl text-white">Tạo tài khoản mới</h1>
+          <h1 className="font-display font-extrabold text-2xl text-white">Đăng ký tài khoản</h1>
           <p className="text-xs sm:text-sm text-slate-400">
             Trở thành thành viên để tích điểm và đặt vé siêu tốc
           </p>
@@ -127,12 +129,15 @@ export default function Register() {
           {/* Submit */}
           <button
             type="submit"
-            className="btn-primary w-full !py-3 text-base shadow-glow flex items-center justify-center gap-2 mt-2"
+            className="btn-primary w-full !py-3 text-base flex items-center justify-center gap-2 mt-2"
             disabled={loading}
           >
-            <Sparkles className="h-4 w-4" />
             <span>{loading ? 'Đang khởi tạo...' : 'Đăng ký tài khoản'}</span>
+            <ArrowRight className="h-4 w-4" />
           </button>
+
+          {/* Social Login */}
+          <SocialLogin onDone={() => navigate('/', { replace: true })} />
 
           <p className="text-xs sm:text-sm text-slate-400 text-center pt-2">
             Đã có tài khoản?{' '}

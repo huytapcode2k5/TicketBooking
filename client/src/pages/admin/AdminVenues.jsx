@@ -3,6 +3,8 @@ import { api } from '../../api/axios.js';
 import Spinner from '../../components/common/Spinner.jsx';
 import { Modal, Field, Badge, PageHeader, Notice, clean, nullify } from '../../components/admin/AdminUI.jsx';
 import { SEAT_TYPE_LABEL } from '../../utils/format.js';
+import { useAdminPresence } from '../../hooks/useAdminPresence.js';
+import { AdminEditingBadge, AdminEditingAlert } from '../../components/admin/AdminPresence.jsx';
 
 export default function AdminVenues() {
     const [cinemas, setCinemas] = useState(null);
@@ -10,6 +12,8 @@ export default function AdminVenues() {
     const [modal, setModal] = useState(null); // { type: 'cinema'|'room'|'generate'|'seats', ... }
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    const { startEdit, stopEdit, isLockedByOther, getEditor } = useAdminPresence();
 
     const load = useCallback(() => Promise.all([api.get('/admin/cinemas'), api.get('/admin/rooms')])
         .then(([c, r]) => { setCinemas(c.data); setRooms(r.data); }).catch((e) => setError(e.message)), []);
@@ -34,7 +38,13 @@ export default function AdminVenues() {
                         <tbody>
                             {cinemas.map((c) => (
                                 <tr key={c.cinemaId} className="border-t border-white/5">
-                                    <td className="py-2 font-medium">{c.name}</td><td>{c.address}</td><td>{c.city}</td><td>{c.roomCount}</td>
+                                    <td className="py-2 font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <span>{c.name}</span>
+                                            <AdminEditingBadge editor={getEditor('cinema', c.cinemaId)} />
+                                        </div>
+                                    </td>
+                                    <td>{c.address}</td><td>{c.city}</td><td>{c.roomCount}</td>
                                     <td><Badge tone={c.isActive ? 'green' : 'slate'}>{c.isActive ? 'Đang hoạt động' : 'Tạm dừng'}</Badge></td>
                                     <td className="space-x-2 text-right whitespace-nowrap">
                                         <button className="btn-ghost !py-1 text-xs" onClick={() => setModal({ type: 'cinema', id: c.cinemaId, form: { name: c.name, address: c.address, city: c.city, phone: c.phone ?? '' } })}>Sửa</button>
@@ -56,7 +66,13 @@ export default function AdminVenues() {
                         <tbody>
                             {rooms.map((r) => (
                                 <tr key={r.roomId} className="border-t border-white/5">
-                                    <td className="py-2 font-medium">{r.name}</td><td>{r.cinemaName}</td>
+                                    <td className="py-2 font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <span>{r.name}</span>
+                                            <AdminEditingBadge editor={getEditor('room', r.roomId)} />
+                                        </div>
+                                    </td>
+                                    <td>{r.cinemaName}</td>
                                     <td>{r.totalRows ? `${r.totalRows} hàng × ${r.totalCols} cột` : <Badge tone="gold">Chưa có ghế</Badge>}</td>
                                     <td className="text-right whitespace-nowrap">
                                         {r.totalRows
@@ -71,15 +87,45 @@ export default function AdminVenues() {
                 </div>
             </section>
 
-            {modal?.type === 'cinema' && <CinemaForm modal={modal} onClose={() => setModal(null)} onSaved={done} />}
+            {modal?.type === 'cinema' && (
+                <CinemaForm
+                    modal={modal}
+                    onClose={() => setModal(null)}
+                    onSaved={done}
+                    presence={{
+                        editor: modal.id ? getEditor('cinema', modal.id) : null,
+                        isLocked: modal.id ? isLockedByOther('cinema', modal.id) : false,
+                        startEdit,
+                        stopEdit,
+                    }}
+                />
+            )}
             {modal?.type === 'room' && <RoomForm modal={modal} cinemas={cinemas} onClose={() => setModal(null)} onSaved={done} />}
             {modal?.type === 'generate' && <GenerateSeats room={modal.room} onClose={() => setModal(null)} onSaved={done} />}
-            {modal?.type === 'seats' && <SeatEditor room={modal.room} onClose={() => setModal(null)} />}
+            {modal?.type === 'seats' && (
+                <SeatEditor
+                    room={modal.room}
+                    onClose={() => setModal(null)}
+                    presence={{
+                        editor: getEditor('room', modal.room.roomId),
+                        isLocked: isLockedByOther('room', modal.room.roomId),
+                        startEdit,
+                        stopEdit,
+                    }}
+                />
+            )}
         </div>
     );
 }
 
-function CinemaForm({ modal, onClose, onSaved }) {
+function CinemaForm({ modal, onClose, onSaved, presence }) {
+    useEffect(() => {
+        if (modal?.id && presence?.startEdit) {
+            presence.startEdit('cinema', modal.id);
+            return () => presence.stopEdit('cinema', modal.id);
+        }
+    }, [modal?.id, presence]);
+
     const [f, setF] = useState(modal.form);
     const [error, setError] = useState('');
     const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -93,6 +139,7 @@ function CinemaForm({ modal, onClose, onSaved }) {
     return (
         <Modal title={modal.id ? 'Sửa địa điểm' : 'Thêm địa điểm'} onClose={onClose}>
             <form onSubmit={submit} className="space-y-3">
+                {presence && <AdminEditingAlert editor={presence.editor} isLockedByOther={presence.isLocked} />}
                 {error && <div className="error-box">{error}</div>}
                 <Field label="Tên *"><input className="input" required value={f.name} onChange={set('name')} /></Field>
                 <Field label="Địa chỉ *"><input className="input" required value={f.address} onChange={set('address')} /></Field>
@@ -157,7 +204,14 @@ const seatColor = (s) => !s.isActive ? 'bg-slate-900 text-slate-700 line-through
     : s.seatType === 'VIP' ? 'bg-surface2 border border-gold text-gold'
         : s.seatType === 'COUPLE' ? 'bg-surface2 border border-fuchsia-400 text-fuchsia-300' : 'bg-surface2 text-slate-300';
 
-function SeatEditor({ room, onClose }) {
+function SeatEditor({ room, onClose, presence }) {
+    useEffect(() => {
+        if (room?.roomId && presence?.startEdit) {
+            presence.startEdit('room', room.roomId);
+            return () => presence.stopEdit('room', room.roomId);
+        }
+    }, [room?.roomId, presence]);
+
     const [seats, setSeats] = useState(null);
     const [tool, setTool] = useState('VIP');
     const [error, setError] = useState('');
@@ -175,6 +229,7 @@ function SeatEditor({ room, onClose }) {
     const rows = seats ? [...new Set(seats.map((s) => s.rowLabel))].sort() : [];
     return (
         <Modal wide title={`Sơ đồ ghế · ${room.name}`} onClose={onClose}>
+            {presence && <AdminEditingAlert editor={presence.editor} isLockedByOther={presence.isLocked} />}
             {error && <div className="error-box mb-3">{error}</div>}
             <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
                 <span className="text-slate-400">Bấm vào ghế để đổi thành:</span>

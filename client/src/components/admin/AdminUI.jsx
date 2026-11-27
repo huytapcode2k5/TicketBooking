@@ -82,3 +82,5 @@ export const fromInputVN = (v) => new Date(`${v}:00+07:00`).toISOString();
 export const clean = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== '' && v != null));
 export const nullify = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v === '' ? null : v]));
 
+export { AdminEditingBadge, AdminEditingAlert } from './AdminPresence.jsx';
+

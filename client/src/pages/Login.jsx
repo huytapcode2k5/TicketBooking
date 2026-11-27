@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { Ticket, Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import SocialLogin from '../components/auth/SocialLogin.jsx';
 
 export default function Login() {
   const { login } = useAuth();
@@ -32,7 +33,7 @@ export default function Login() {
         {/* Brand Header */}
         <div className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-accent to-rose-600 flex items-center justify-center text-white shadow-glow-sm group-hover:scale-105 transition-transform">
+            <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center text-white shadow-sm transition-transform">
               <Ticket className="h-5 w-5" />
             </div>
             <span className="font-display font-black text-2xl tracking-tight text-white">
@@ -101,12 +102,15 @@ export default function Login() {
           {/* Submit Button */}
           <button
             type="submit"
-            className="btn-primary w-full !py-3 text-base shadow-glow flex items-center justify-center gap-2"
+            className="btn-primary w-full !py-3 text-base flex items-center justify-center gap-2"
             disabled={loading}
           >
             <span>{loading ? 'Đang xác thực...' : 'Đăng nhập'}</span>
             <ArrowRight className="h-4 w-4" />
           </button>
+
+          {/* Social Login Section */}
+          <SocialLogin onDone={() => navigate(location.state?.from?.pathname || '/', { replace: true })} />
 
           {/* Register Prompt */}
           <div className="pt-2 text-center text-xs sm:text-sm text-slate-400">

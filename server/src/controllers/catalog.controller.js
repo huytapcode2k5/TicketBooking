@@ -11,9 +11,13 @@ export const listMovies = asyncHandler(async (req, res) => {
   const { q, genreId, status, cinemaId } = req.query;
   const limit = Math.min(Number(req.query.limit) || 12, 50);
   const offset = ((Number(req.query.page) || 1) - 1) * limit;
-  const params = { Q: q || null, GenreId: genreId ? toId(genreId, 'genreId') : null, Status: status || null, CinemaId: cinemaId ? toId(cinemaId, 'cinemaId') : null, Offset: offset, Limit: limit };
+  const params = { Q: q ? String(q).trim() : null, GenreId: genreId ? toId(genreId, 'genreId') : null, Status: status || null, CinemaId: cinemaId ? toId(cinemaId, 'cinemaId') : null, Offset: offset, Limit: limit };
   const where = `m.Status <> 'HIDDEN'
-    AND (@Q IS NULL OR m.Title LIKE '%' + @Q + '%')
+    AND (@Q IS NULL OR (
+      m.Title COLLATE SQL_Latin1_General_CP1_CI_AI LIKE '%' + @Q + '%'
+      OR m.Director COLLATE SQL_Latin1_General_CP1_CI_AI LIKE '%' + @Q + '%'
+      OR m.Actors COLLATE SQL_Latin1_General_CP1_CI_AI LIKE '%' + @Q + '%'
+    ))
     AND (@Status IS NULL OR m.Status = @Status)
     AND (@GenreId IS NULL OR EXISTS (SELECT 1 FROM MovieGenres mg WHERE mg.MovieId = m.MovieId AND mg.GenreId = @GenreId))
     AND (@CinemaId IS NULL OR EXISTS (SELECT 1 FROM Showtimes st JOIN Rooms r ON r.RoomId = st.RoomId
@@ -34,6 +38,53 @@ export const listMovies = asyncHandler(async (req, res) => {
   );
   const [{ total }] = await query(`SELECT COUNT(*) AS Total FROM Movies m WHERE ${where}`, params);
   ok(res, { items, total, page: Math.floor(offset / limit) + 1, limit });
+});
+
+/** GET /api/movies/featured: Lấy phim tiêu điểm tuần dựa trên số lượng vé được đặt nhiều nhất */
+export const getFeaturedMovie = asyncHandler(async (req, res) => {
+  // Ưu tiên 1: Phim đang chiếu (NOW_SHOWING) có lượt đặt vé cao nhất (tuần gần nhất hoặc tổng)
+  let [featured] = await query(
+    `SELECT TOP 1 
+            m.MovieId, m.Title, m.Description, m.PosterUrl, m.BannerUrl, m.TrailerUrl, 
+            m.DurationMin, m.AgeRating, m.Status, m.ReleaseDate,
+            ${GENRES_SQL} AS Genres,
+            (SELECT MIN(sp.Price) FROM Showtimes st JOIN ShowtimePrices sp ON sp.ShowtimeId = st.ShowtimeId
+              WHERE st.MovieId = m.MovieId AND st.Status = 'SCHEDULED' AND st.StartTime > SYSUTCDATETIME()) AS MinPrice,
+            (SELECT AVG(CAST(Rating AS FLOAT)) FROM Reviews r WHERE r.MovieId = m.MovieId) AS AvgRating,
+            (SELECT COUNT(*) FROM Reviews r WHERE r.MovieId = m.MovieId) AS ReviewCount,
+            (SELECT COUNT(*) FROM vw_ShowtimeSummary v WHERE v.MovieId = m.MovieId AND v.Status = 'SCHEDULED' AND v.StartTime > SYSUTCDATETIME()
+               AND v.SoldSeats >= v.TotalSeats) AS SoldOutShowtimes,
+            (SELECT COUNT(*) FROM vw_ShowtimeSummary v WHERE v.MovieId = m.MovieId AND v.Status = 'SCHEDULED' AND v.StartTime > SYSUTCDATETIME()) AS UpcomingShowtimes,
+            (SELECT COUNT(t.TicketId) FROM Showtimes st JOIN Tickets t ON t.ShowtimeId = st.ShowtimeId
+              WHERE st.MovieId = m.MovieId AND t.Status <> 'CANCELLED' 
+                AND t.IssuedAt >= DATEADD(day, -7, SYSUTCDATETIME())) AS WeeklyBookedCount,
+            (SELECT COUNT(t.TicketId) FROM Showtimes st JOIN Tickets t ON t.ShowtimeId = st.ShowtimeId
+              WHERE st.MovieId = m.MovieId AND t.Status <> 'CANCELLED') AS TotalBookedCount
+     FROM Movies m
+     WHERE m.Status = 'NOW_SHOWING'
+     ORDER BY WeeklyBookedCount DESC, TotalBookedCount DESC, UpcomingShowtimes DESC, AvgRating DESC, m.ReleaseDate DESC, m.MovieId DESC`
+  );
+
+  // Ưu tiên 2: Fallback sang phim bất kỳ chưa bị ẩn
+  if (!featured) {
+    [featured] = await query(
+      `SELECT TOP 1 
+              m.MovieId, m.Title, m.Description, m.PosterUrl, m.BannerUrl, m.TrailerUrl, 
+              m.DurationMin, m.AgeRating, m.Status, m.ReleaseDate,
+              ${GENRES_SQL} AS Genres,
+              (SELECT MIN(sp.Price) FROM Showtimes st JOIN ShowtimePrices sp ON sp.ShowtimeId = st.ShowtimeId
+                WHERE st.MovieId = m.MovieId AND st.Status = 'SCHEDULED' AND st.StartTime > SYSUTCDATETIME()) AS MinPrice,
+              (SELECT AVG(CAST(Rating AS FLOAT)) FROM Reviews r WHERE r.MovieId = m.MovieId) AS AvgRating,
+              (SELECT COUNT(*) FROM Reviews r WHERE r.MovieId = m.MovieId) AS ReviewCount,
+              0 AS WeeklyBookedCount,
+              0 AS TotalBookedCount
+       FROM Movies m
+       WHERE m.Status <> 'HIDDEN' AND m.Status <> 'ENDED'
+       ORDER BY m.ReleaseDate DESC, m.MovieId DESC`
+    );
+  }
+
+  ok(res, featured || null);
 });
 
 export const getMovie = asyncHandler(async (req, res) => {
@@ -92,7 +143,8 @@ export const reviewSchema = z.object({ rating: z.number().int().min(1).max(5), c
 
 export const listReviews = asyncHandler(async (req, res) =>
   ok(res, await query(
-    `SELECT r.ReviewId, r.Rating, r.Comment, r.CreatedAt, u.FullName FROM Reviews r JOIN Users u ON u.UserId = r.UserId
+    `SELECT r.ReviewId, r.UserId, r.MovieId, r.Rating, r.Comment, r.CreatedAt, u.FullName, u.AvatarUrl 
+     FROM Reviews r JOIN Users u ON u.UserId = r.UserId
      WHERE r.MovieId = @Id ORDER BY r.CreatedAt DESC`, { Id: toId(req.params.id) })),
 );
 
@@ -102,6 +154,20 @@ export const saveReview = asyncHandler(async (req, res) => {
   const updated = await query('UPDATE Reviews SET Rating = @Rating, Comment = @Comment, CreatedAt = SYSUTCDATETIME() OUTPUT INSERTED.ReviewId WHERE UserId = @UserId AND MovieId = @MovieId', params);
   if (!updated.length) await query('INSERT INTO Reviews (UserId, MovieId, Rating, Comment) VALUES (@UserId, @MovieId, @Rating, @Comment)', params);
   ok(res, null, 'Đã lưu đánh giá', 201);
+});
+
+export const deleteReview = asyncHandler(async (req, res) => {
+  const reviewId = toId(req.params.reviewId || req.params.id, 'reviewId');
+  const [rev] = await query('SELECT ReviewId, UserId, MovieId FROM Reviews WHERE ReviewId = @ReviewId', { ReviewId: reviewId });
+  if (!rev) throw new HttpError(404, 'Không tìm thấy đánh giá.');
+
+  // Chỉ cho phép xóa nếu là quản trị viên (ADMIN) hoặc chính người đã viết đánh giá
+  if (req.user.role !== 'ADMIN' && req.user.userId !== rev.userId) {
+    throw new HttpError(403, 'Bạn không có quyền xóa đánh giá này.');
+  }
+
+  await query('DELETE FROM Reviews WHERE ReviewId = @ReviewId', { ReviewId: reviewId });
+  ok(res, null, 'Đã xóa đánh giá thành công.');
 });
 
 export const listFavorites = asyncHandler(async (req, res) =>

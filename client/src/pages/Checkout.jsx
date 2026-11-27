@@ -271,7 +271,7 @@ export default function Checkout() {
         </div>
 
         <div className="border-t border-white/10 pt-4 flex items-baseline justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Tổng thanh toán:</span>
+          <span className="text-xs font-semibold text-slate-400">Tổng thanh toán:</span>
           <span className="font-mono text-3xl font-black text-amber-300">
             {vnd(subTotal - discount)}
           </span>
@@ -285,12 +285,12 @@ export default function Checkout() {
         )}
 
         <button
-          className="btn-primary w-full !py-3.5 text-base shadow-glow flex items-center justify-center gap-2"
+          className="btn-primary w-full !py-3.5 text-base flex items-center justify-center gap-2"
           disabled={submitting || left === 0}
           onClick={pay}
         >
           <CreditCard className="h-4 w-4" />
-          <span>{submitting ? 'Đang tạo giao dịch...' : 'Thanh toán qua PayOS'}</span>
+          <span>{submitting ? 'Đang tạo giao dịch...' : 'Tiếp tục thanh toán'}</span>
           <ArrowRight className="h-4 w-4" />
         </button>
 
@@ -304,7 +304,7 @@ export default function Checkout() {
 
         <div className="pt-2 text-center text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-          <span>Giao dịch bảo mật 100% qua cổng VietQR PayOS</span>
+          <span>Giao dịch bảo mật qua cổng thanh toán MoMo</span>
         </div>
       </aside>
     </div>
